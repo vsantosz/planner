@@ -63,7 +63,7 @@ body {
 }
 
 /* Botão de abrir/fechar menu */
-.menu-toggle-button, .close-menu-button {
+.menu-toggle-button {
     position: fixed;
     top: 1.5rem;
     right: 1.5rem;
@@ -80,9 +80,10 @@ body {
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
     transition: all 0.3s ease-in-out;
     z-index: 1001;
+    /* Visível por padrão, não precisa de opacity/visibility aqui */
 }
 
-.menu-toggle-button:hover, .close-menu-button:hover {
+.menu-toggle-button:hover {
     background-color: var(--primary-color); /* Fundo preenchido no hover */
     color: white; /* Ícone branco no hover */
     transform: scale(1.05);
@@ -155,6 +156,7 @@ body {
     border: none; /* Remove a borda padrão */
     color: var(--text-dark); /* Cor do ícone */
     box-shadow: none; /* Remove a sombra padrão */
+    transition: all 0.3s ease-in-out; /* Adiciona transição para hide/show suave */
 }
 .close-menu-button:hover {
     background-color: #e2e8f0; /* Fundo cinza claro no hover */

@@ -448,7 +448,7 @@ function renderFullPlanner(reset = true) {
                                 <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M8 5a1 1 0 100 2h5.586l-1.293 1.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L13.586 5H8zM17 14a1 1 0 100-2h-5.586l1.293-1.293a1 1 0 00-1.414-1.414l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L13.586 14H17z"></path></svg>
                             </button>
                             <button class="action-btn move-to-today-btn" data-task-id="${task.id}" data-current-date="${dayData.date}" title="Trazer para Hoje">
-                                <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 002-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path></svg>
+                                <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path></svg>
                             </button>
                             <button class="action-btn edit-task-btn" data-task-id="${task.id}" data-current-date="${dayData.date}" title="Editar Tarefa">
                                 <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M13.586 3.586a2 2 0 112.828 2.828l-7.793 7.793a1 1 0 01-.328.288l-3 1a1 1 0 01-1.244-1.244l1-3a1 1 0 01.288-.328l7.793-7.793zM10 12l-1 1 3 1 1-3-3-1z"></path></svg>
@@ -1370,6 +1370,31 @@ function handleMergeUpdate(importedData) {
     } else {
         performMerge(); // Se não houver sobrescrita, mescla diretamente
     }
+}
+
+// Função para abrir o modal de opções de importação
+function openImportOptionsModal(importedData) {
+    const importOptionsModal = document.getElementById('importOptionsModal');
+    const importReplaceAllBtn = document.getElementById('importReplaceAllBtn');
+    const importMergeBtn = document.getElementById('importMergeBtn');
+    const cancelImportOptionsBtn = document.getElementById('cancelImportOptionsBtn');
+
+    importReplaceAllBtn.onclick = () => {
+        handleReplaceAll(importedData);
+        importOptionsModal.classList.remove('show');
+    };
+
+    importMergeBtn.onclick = () => {
+        handleMergeUpdate(importedData);
+        importOptionsModal.classList.remove('show');
+    };
+
+    cancelImportOptionsBtn.onclick = () => {
+        importOptionsModal.classList.remove('show');
+        showConfirmationModal('Importação Cancelada', 'Nenhum dado foi importado.', 'Ok', 'modal-btn blue', () => {});
+    };
+
+    importOptionsModal.classList.add('show');
 }
 
 // Função para copiar o planner para a área de transferência
