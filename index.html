@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planner CNU 2025 - Bloco 7 (Justiça e Defesa)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- Link para o arquivo CSS externo -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>Planner CNU 2025 - Bloco 7</h1>
+            <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+                Seu guia interativo para a aprovação no Concurso Nacional Unificado - Bloco 7 (Justiça e Defesa).
+                Organize seus estudos, acompanhe seu progresso e mantenha-se motivado!
+            </p>
+            <!-- Botão para abrir o menu lateral -->
+            <button id="menuToggleBtn" class="menu-toggle-button" title="Abrir Menu">
+                <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"></path></svg>
+            </button>
+        </header>
+
+        <!-- Menu Lateral (Side Drawer) -->
+        <nav id="sideMenu" class="side-menu">
+            <button id="closeMenuBtn" class="close-menu-button" title="Fechar Menu">
+                <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
+            </button>
+            <div class="menu-section">
+                <h3 class="menu-title">Acesso Rápido</h3>
+                <a href="https://www.grancursosonline.com.br/" target="_blank" class="menu-link grancursos">
+                    <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path></svg>
+                    Gran Cursos Online
+                </a>
+                <a href="https://www.qconcursos.com/" target="_blank" class="menu-link qconcursos">
+                    <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a2 2 0 100 4 2 2 0 000-4z" clip-rule="evenodd"></path></svg>
+                    QConcursos
+                </a>
+            </div>
+            <div class="menu-section">
+                <h3 class="menu-title">Gerenciar Planner</h3>
+                <button id="resetPlannerBtn" class="menu-link red">
+                    <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.586 2.586a1 1 0 001.414-1.414L11 9.586V6z" clip-rule="evenodd"></path></svg>
+                    Resetar Planner
+                </button>
+                <button id="exportPlannerBtn" class="menu-link green">
+                    <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L10 11.586l2.293-2.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"></path><path fill-rule="evenodd" d="M9 2a1 1 0 011 1v7a1 1 0 11-2 0V3a1 1 0 011-1z" clip-rule="evenodd"></path></svg>
+                    Exportar Planner (JSON)
+                </button>
+                <input type="file" id="importFileInput" accept=".json" class="hidden">
+                <button id="importPlannerBtn" class="menu-link blue">
+                    <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L6.293 6.707z" clip-rule="evenodd"></path></svg>
+                    Importar Planner (JSON)
+                </button>
+            </div>
+        </nav>
+
+        <!-- Conteúdo Principal com Abas -->
+        <div class="tab-container">
+            <div class="tab-buttons">
+                <button class="tab-button active" data-tab="today">Tarefas de Hoje</button>
+                <button class="tab-button" data-tab="full-planner">Cronograma Completo</button>
+                <button class="tab-button" data-tab="summary">Seu Progresso</button>
+            </div>
+
+            <div id="today" class="tab-content active">
+                <section class="today-section">
+                    <div class="flex justify-between items-center mb-4">
+                        <button id="prevDayBtn" class="icon-button blue" title="Dia Anterior">
+                            <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+                        </button>
+                        <h2 class="text-center flex-grow" id="todaySectionTitle"></h2>
+                        <button id="nextDayBtn" class="icon-button blue" title="Próximo Dia">
+                            <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg>
+                        </button>
+                    </div>
+                    <div class="flex items-center justify-between mt-4 mb-6 p-4 bg-blue-50 rounded-lg shadow-inner">
+                        <label for="studyHoursInput" class="font-bold text-blue-800 text-lg">Horas de Estudo:</label>
+                        <input type="number" id="studyHoursInput" class="w-32 p-3 border-2 border-blue-300 rounded-lg text-center text-xl font-bold text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500" step="0.1" min="0" value="0.0">
+                    </div>
+
+                    <!-- Timer de Estudos -->
+                    <div class="study-timer-container">
+                        <div id="pomodoroPhaseText" class="text-lg text-gray-600 mb-2">Parado</div>
+                        <div id="timerDisplay" class="timer-display">00:00:00</div>
+                        <div class="timer-buttons">
+                            <button id="startTimerBtn" class="timer-btn start">Iniciar</button>
+                            <button id="pauseTimerBtn" class="timer-btn pause" disabled>Pausar</button>
+                            <button id="stopTimerBtn" class="timer-btn stop" disabled>Parar</button>
+                        </div>
+                    </div>
+
+                    <!-- Anotações Diárias -->
+                    <div class="daily-notes-container mt-6 p-4 bg-gray-50 rounded-lg shadow-inner">
+                        <h3 class="font-bold text-gray-800 text-lg mb-2">Anotações do Dia:</h3>
+                        <textarea id="dailyNotesInput" class="notes-textarea w-full" placeholder="Suas anotações gerais para este dia..."></textarea>
+                    </div>
+
+                    <ul id="todayTaskList" class="today-task-list">
+                        <!-- As tarefas do dia atual serão renderizadas aqui -->
+                    </ul>
+
+                    <!-- Botão para Adicionar Nova Tarefa (Pequeno e Flutuante) -->
+                    <button id="addNewTaskBtn" class="add-task-fab" title="Adicionar Nova Tarefa">
+                        <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd"></path></svg>
+                    </button>
+                </section>
+            </div>
+
+            <div id="full-planner" class="tab-content hidden">
+                <section class="full-planner-section">
+                    <h2 class="mt-8">Cronograma Completo</h2>
+                    <div id="fullPlanner" class="mt-6">
+                        <!-- O planner completo será renderizado aqui -->
+                    </div>
+                    <button id="loadMoreDaysBtn" class="load-more-button hidden">
+                        Carregar Mais Dias
+                    </button>
+                </section>
+            </div>
+
+            <div id="summary" class="tab-content hidden">
+                <section class="summary-section">
+                    <h2>Seu Progresso</h2>
+                    <div class="summary-grid">
+                        <div class="summary-card green">
+                            <h3>Horas Estudadas Hoje</h3>
+                            <p id="todayStudyHours">0h</p>
+                        </div>
+                        <div class="summary-card purple">
+                            <h3>Tarefas Concluídas Hoje</h3>
+                            <p id="todayCompletedTasks">0/0</p>
+                        </div>
+                        <div class="summary-card green">
+                            <h3>Horas Estudadas na Semana</h3>
+                            <p id="weeklyStudyHours">0h</p>
+                        </div>
+                        <div class="summary-card primary">
+                            <h3>Progresso Total</h3>
+                            <p id="totalProgressDisplay">0%</p>
+                        </div>
+                    </div>
+                </section>
+                <!-- Citação Motivacional -->
+                <section class="quote-section">
+                    <p id="motivationalQuote"></p>
+                    <span id="quoteAuthor"></span>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Confirmação -->
+    <div id="confirmationModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 id="modalTitle"></h3>
+            <p id="modalMessage"></p>
+            <div class="modal-buttons">
+                <button id="cancelModalBtn" class="modal-btn cancel-btn">Cancelar</button>
+                <button id="confirmModalBtn" class="modal-btn confirm-btn"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Mover Tarefa -->
+    <div id="moveTaskModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 id="moveModalTitle">Mover Tarefa</h3>
+            <p>Mover "<span id="taskDescriptionToMove" class="font-semibold"></span>" para:</p>
+            <input type="date" id="moveTaskDateInput" class="w-full p-2 border border-gray-300 rounded-md mb-4">
+            <div class="modal-buttons">
+                <button id="cancelMoveBtn" class="modal-btn cancel-btn">Cancelar</button>
+                <button id="confirmMoveBtn" class="modal-btn confirm-btn blue">Mover</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Adicionar/Editar Tarefa -->
+    <div id="addTaskModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 id="addTaskModalTitle">Adicionar Nova Tarefa</h3>
+            <div class="mb-4 text-left">
+                <label for="newTaskDescription" class="block text-gray-700 text-sm font-bold mb-2">Descrição:</label>
+                <input type="text" id="newTaskDescription" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Ex: Estudar Direito Constitucional - Art. 5º">
+            </div>
+            <div class="mb-4 text-left">
+                <label for="newTaskType" class="block text-gray-700 text-sm font-bold mb-2">Tipo:</label>
+                <select id="newTaskType" class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                    <option value="study">Estudo</option>
+                    <option value="questions">Questões</option>
+                    <option value="discursive">Discursiva</option>
+                    <option value="simulado">Simulado</option>
+                    <option value="revision">Revisão</option>
+                    <option value="rest">Descanso</option>
+                </select>
+            </div>
+            <div class="mb-4 text-left">
+                <label for="newTaskTips" class="block text-gray-700 text-sm font-bold mb-2">Dica/Bizú (Opcional):</label>
+                <textarea id="newTaskTips" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Ex: Focar na jurisprudência recente."></textarea>
+            </div>
+            <div class="mb-4 text-left">
+                <label for="newTaskNotes" class="block text-gray-700 text-sm font-bold mb-2">Anotações (Opcional):</label>
+                <textarea id="newTaskNotes" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Anotações pessoais sobre a tarefa."></textarea>
+            </div>
+            <div class="modal-buttons">
+                <button id="cancelAddTaskBtn" class="modal-btn cancel-btn">Cancelar</button>
+                <button id="confirmAddTaskBtn" class="modal-btn confirm-btn green">Adicionar Tarefa</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Novo Modal de Opções de Importação -->
+    <div id="importOptionsModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 id="importOptionsTitle">Opções de Importação</h3>
+            <p id="importOptionsMessage">Como você gostaria de importar este arquivo?</p>
+            <div class="modal-buttons flex-col gap-4">
+                <button id="importReplaceAllBtn" class="modal-btn confirm-btn red w-full">Substituir Tudo</button>
+                <button id="importMergeBtn" class="modal-btn confirm-btn blue w-full">Mesclar e Atualizar</button>
+                <button id="cancelImportOptionsBtn" class="modal-btn cancel-btn w-full">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botão Voltar ao Topo -->
+    <button id="backToTopBtn" title="Voltar ao Topo">
+        <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd"></path></svg>
+    </button>
+
+    <!-- Link para o arquivo JavaScript externo -->
+    <script src="script.js"></script>
+</body>
+</html>
