@@ -324,7 +324,7 @@ body {
     margin-bottom: 0.85rem;
     display: flex;
     align-items: center;
-    flex-wrap: wrap; /* Permite que os itens quebrem a linha */
+    flex-wrap: nowrap; /* Impede que os itens quebrem a linha */
     justify-content: space-between; /* Distribui espaço entre os itens */
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08); /* Sombra mais pronunciada */
     transition: transform 0.2s ease-in-out, background-color 0.3s ease, box-shadow 0.3s ease;
@@ -374,10 +374,10 @@ body {
 /* Contêiner dos botões de ação */
 .task-action-buttons {
     display: flex;
+    align-items: center;
     gap: 0.5rem; /* Espaçamento entre os botões */
     flex-shrink: 0; /* Impede que os botões encolham */
-    margin-left: auto; /* Empurra os botões para a direita */
-    padding-top: 0.5rem; /* Adiciona um pouco de padding no topo para quando quebrar a linha */
+    margin-left: 1rem; /* Empurra os botões para a direita */
 }
 
 /* Botões de Ação (Dicas, Anotações, Editar, Excluir) */
@@ -402,6 +402,48 @@ body {
     height: 20px;
     color: #718096;
 }
+
+/* Botão de Mais Opções */
+.more-options-btn {
+    background-color: #e2e8f0; /* Cor de fundo para o botão de mais opções */
+    color: #718096;
+    border: none;
+    cursor: pointer;
+    padding: 0.6rem;
+    border-radius: 9999px;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.more-options-btn:hover {
+    background-color: #cbd5e0;
+    transform: scale(1.1);
+}
+
+.more-options-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* Contêiner para os botões ocultos */
+.hidden-buttons-container {
+    display: flex;
+    gap: 0.5rem;
+    transition: all 0.3s ease-out;
+    overflow: hidden;
+    max-width: 0; /* Começa oculto */
+    opacity: 0;
+    visibility: hidden;
+}
+
+.hidden-buttons-container.show {
+    max-width: 300px; /* Um valor grande o suficiente para mostrar todos os botões */
+    opacity: 1;
+    visibility: visible;
+}
+
 
 /* Área de Texto para Anotações (por tarefa) */
 .notes-textarea {
@@ -509,7 +551,7 @@ body {
     margin-bottom: 0.7rem;
     display: flex;
     align-items: center;
-    flex-wrap: wrap; /* Permite que os itens quebrem a linha */
+    flex-wrap: nowrap; /* Impede que os itens quebrem a linha */
     justify-content: space-between; /* Distribui espaço entre os itens */
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
     transition: background-color 0.2s ease, transform 0.2s ease;
@@ -971,11 +1013,14 @@ body {
         margin-right: 0.5rem;
     }
     .task-action-buttons {
-        padding-top: 0.5rem; /* Keep padding-top for wrapping on small screens */
+        /* No mobile, se a descrição da tarefa for muito longa,
+           os botões podem precisar quebrar a linha.
+           Vamos garantir que eles ainda fiquem juntos. */
+        flex-wrap: nowrap; /* Impede que os botões quebrem a linha */
+        margin-left: 0.5rem; /* Ajuste o espaçamento */
     }
     .action-btn {
         padding: 0.4rem;
-        /* margin-left: 0.4rem; */ /* Removed to rely on gap */
     }
     .action-btn svg {
         width: 18px;
@@ -1080,11 +1125,5 @@ body {
     #backToTopBtn svg {
         width: 24px;
         height: 24px;
-    }
-}
-
-@media (min-width: 768px) { /* md */
-    .task-action-buttons {
-        padding-top: 0; /* Remove padding-top on larger screens */
     }
 }

@@ -328,23 +328,28 @@ function renderTodayTasks() {
                 <label for="task-${task.id}">${task.description}</label>
                 <span class="today-task-status ${getTaskStatusClass(task.type)}">${getTaskStatusText(task.type)}</span>
                 <div class="task-action-buttons">
-                    ${(task.type === 'questions' || task.type === 'simulado') ? `
-                    <button class="action-btn record-performance-btn" data-task-id="${task.id}" title="Registrar Desempenho">
-                        <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.586 2.586a1 1 0 001.414-1.414L11 9.586V6z" clip-rule="evenodd"></path></svg>
-                    </button>
-                    ` : ''}
                     <button class="action-btn toggle-tips-btn" data-task-id="${task.id}" title="Ver Dica/Bizu">
                         <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>
                     </button>
                     <button class="action-btn toggle-notes-btn" data-task-id="${task.id}" title="Adicionar Anotação">
                         <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M17 12h-2V7h-5V2H7v5H2v5h5v5h5v-5h5v-5z"></path></svg>
                     </button>
-                    <button class="action-btn edit-task-btn" data-task-id="${task.id}" data-current-date="${displayDateString}" title="Editar Tarefa">
-                        <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M13.586 3.586a2 2 0 112.828 2.828l-7.793 7.793a1 1 0 01-.328.288l-3 1a1 1 0 01-1.244-1.244l1-3a1 1 0 01.288-.328l7.793-7.793zM10 12l-1 1 3 1 1-3-3-1z"></path></svg>
+                    <button class="more-options-btn" data-task-id="${task.id}" title="Mais Opções">
+                        <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zm0 8a2 2 0 110-4 2 2 0 010 4zm0 4a2 2 0 110-4 2 2 0 010 4z"></path></svg>
                     </button>
-                    <button class="action-btn delete-task-btn" data-task-id="${task.id}" data-current-date="${displayDateString}" title="Excluir Tarefa">
-                        <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm6 0a1 1 0 11-2 0v6a1 1 0 112 0V8z" clip-rule="evenodd"></path></svg>
-                    </button>
+                    <div class="hidden-buttons-container" id="hidden-buttons-${task.id}">
+                        ${(task.type === 'questions' || task.type === 'simulado') ? `
+                        <button class="action-btn record-performance-btn" data-task-id="${task.id}" title="Registrar Desempenho">
+                            <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.586 2.586a1 1 0 001.414-1.414L11 9.586V6z" clip-rule="evenodd"></path></svg>
+                        </button>
+                        ` : ''}
+                        <button class="action-btn edit-task-btn" data-task-id="${task.id}" data-current-date="${displayDateString}" title="Editar Tarefa">
+                            <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M13.586 3.586a2 2 0 112.828 2.828l-7.793 7.793a1 1 0 01-.328.288l-3 1a1 1 0 01-1.244-1.244l1-3a1 1 0 01.288-.328l7.793-7.793zM10 12l-1 1 3 1 1-3-3-1z"></path></svg>
+                        </button>
+                        <button class="action-btn delete-task-btn" data-task-id="${task.id}" data-current-date="${displayDateString}" title="Excluir Tarefa">
+                            <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm6 0a1 1 0 11-2 0v6a1 1 0 112 0V8z" clip-rule="evenodd"></path></svg>
+                        </button>
+                    </div>
                 </div>
                 <textarea class="notes-textarea ${task.notes ? '' : 'hidden'}" data-task-id="${task.id}" placeholder="Suas anotações...">${task.notes}</textarea>
                 <div class="tips-content ${task.tips ? '' : 'hidden'}" data-task-id="${task.id}">
@@ -385,7 +390,13 @@ function renderTodayTasks() {
                 saveAppState();
             });
 
-            // Adiciona listeners para botões de editar e excluir
+            // Adiciona listeners para o botão "Mais Opções"
+            listItem.querySelector(`.more-options-btn`).addEventListener('click', () => {
+                const hiddenButtonsContainer = listItem.querySelector(`#hidden-buttons-${task.id}`);
+                hiddenButtonsContainer.classList.toggle('show');
+            });
+
+            // Adiciona listeners para botões de editar e excluir (dentro do contêiner oculto)
             listItem.querySelector(`.edit-task-btn`).addEventListener('click', (event) => {
                 openEditTaskModal(task.id, displayDateString);
             });
@@ -439,23 +450,34 @@ function renderFullPlanner(reset = true) {
                         <label for="full-task-${task.id}">${task.description}</label>
                         <span class="day-task-type ${getTaskTypeClass(task.type)}">${getTaskTypeText(task.type)}</span>
                         <div class="task-action-buttons">
-                            ${(task.type === 'questions' || task.type === 'simulado') ? `
-                            <button class="action-btn record-performance-btn" data-task-id="${task.id}" data-current-date="${dayData.date}" title="Registrar Desempenho">
-                                <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.586 2.586a1 1 0 001.414-1.414L11 9.586V6z" clip-rule="evenodd"></path></svg>
+                            <button class="action-btn toggle-tips-btn" data-task-id="${task.id}" title="Ver Dica/Bizu">
+                                <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>
                             </button>
-                            ` : ''}
-                            <button class="action-btn move-task-btn" data-task-id="${task.id}" data-current-date="${dayData.date}" title="Mover Tarefa">
-                                <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M8 5a1 1 0 100 2h5.586l-1.293 1.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L13.586 5H8zM17 14a1 1 0 100-2h-5.586l1.293-1.293a1 1 0 00-1.414-1.414l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L13.586 14H17z"></path></svg>
+                            <button class="action-btn toggle-notes-btn" data-task-id="${task.id}" title="Adicionar Anotação">
+                                <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M17 12h-2V7h-5V2H7v5H2v5h5v5h5v-5h5v-5z"></path></svg>
                             </button>
-                            <button class="action-btn move-to-today-btn" data-task-id="${task.id}" data-current-date="${dayData.date}" title="Trazer para Hoje">
-                                <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path></svg>
+                            <button class="more-options-btn" data-task-id="${task.id}" title="Mais Opções">
+                                <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zm0 8a2 2 0 110-4 2 2 0 010 4zm0 4a2 2 0 110-4 2 2 0 010 4z"></path></svg>
                             </button>
-                            <button class="action-btn edit-task-btn" data-task-id="${task.id}" data-current-date="${dayData.date}" title="Editar Tarefa">
-                                <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M13.586 3.586a2 2 0 112.828 2.828l-7.793 7.793a1 1 0 01-.328.288l-3 1a1 1 0 01-1.244-1.244l1-3a1 1 0 01.288-.328l7.793-7.793zM10 12l-1 1 3 1 1-3-3-1z"></path></svg>
-                            </button>
-                            <button class="action-btn delete-task-btn" data-task-id="${task.id}" data-current-date="${dayData.date}" title="Excluir Tarefa">
-                                <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm6 0a1 1 0 11-2 0v6a1 1 0 112 0V8z" clip-rule="evenodd"></path></svg>
-                            </button>
+                            <div class="hidden-buttons-container" id="full-hidden-buttons-${task.id}">
+                                ${(task.type === 'questions' || task.type === 'simulado') ? `
+                                <button class="action-btn record-performance-btn" data-task-id="${task.id}" data-current-date="${dayData.date}" title="Registrar Desempenho">
+                                    <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.586 2.586a1 1 0 001.414-1.414L11 9.586V6z" clip-rule="evenodd"></path></svg>
+                                </button>
+                                ` : ''}
+                                <button class="action-btn move-task-btn" data-task-id="${task.id}" data-current-date="${dayData.date}" title="Mover Tarefa">
+                                    <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M8 5a1 1 0 100 2h5.586l-1.293 1.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L13.586 5H8zM17 14a1 1 0 100-2h-5.586l1.293-1.293a1 1 0 00-1.414-1.414l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L13.586 14H17z"></path></svg>
+                                </button>
+                                <button class="action-btn move-to-today-btn" data-task-id="${task.id}" data-current-date="${dayData.date}" title="Trazer para Hoje">
+                                    <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path></svg>
+                                </button>
+                                <button class="action-btn edit-task-btn" data-task-id="${task.id}" data-current-date="${dayData.date}" title="Editar Tarefa">
+                                    <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M13.586 3.586a2 2 0 112.828 2.828l-7.793 7.793a1 1 0 01-.328.288l-3 1a1 1 0 01-1.244-1.244l1-3a1 1 0 01.288-.328l7.793-7.793zM10 12l-1 1 3 1 1-3-3-1z"></path></svg>
+                                </button>
+                                <button class="action-btn delete-task-btn" data-task-id="${task.id}" data-current-date="${dayData.date}" title="Excluir Tarefa">
+                                    <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm6 0a1 1 0 11-2 0v6a1 1 0 112 0V8z" clip-rule="evenodd"></path></svg>
+                                </button>
+                            </div>
                         </div>
                     </li>
                 `).join('')}
@@ -487,51 +509,59 @@ function renderFullPlanner(reset = true) {
                 }
             });
         });
+
+        // Adiciona listeners para o botão "Mais Opções" no planner completo
+        dayCard.querySelectorAll(`.more-options-btn`).forEach(button => {
+            button.addEventListener('click', () => {
+                const taskId = button.dataset.taskId;
+                const hiddenButtonsContainer = dayCard.querySelector(`#full-hidden-buttons-${taskId}`);
+                hiddenButtonsContainer.classList.toggle('show');
+            });
+        });
+
+        // Adiciona listeners para os botões "Mover Tarefa", "Trazer para Hoje", "Editar" e "Excluir"
+        dayCard.querySelectorAll('.move-task-btn').forEach(button => {
+            button.addEventListener('click', (event) => {
+                const taskId = event.currentTarget.dataset.taskId;
+                const currentDate = event.currentTarget.dataset.currentDate;
+                openMoveTaskModal(taskId, currentDate);
+            });
+        });
+
+        dayCard.querySelectorAll('.move-to-today-btn').forEach(button => {
+            button.addEventListener('click', (event) => {
+                const taskId = event.currentTarget.dataset.taskId;
+                const currentDate = event.currentTarget.dataset.currentDate;
+                moveTaskToToday(taskId, currentDate);
+            });
+        });
+
+        dayCard.querySelectorAll('.edit-task-btn').forEach(button => {
+            button.addEventListener('click', (event) => {
+                const taskId = event.currentTarget.dataset.taskId;
+                const currentDate = event.currentTarget.dataset.currentDate;
+                openEditTaskModal(taskId, currentDate);
+            });
+        });
+
+        dayCard.querySelectorAll('.delete-task-btn').forEach(button => {
+            button.addEventListener('click', (event) => {
+                const taskId = event.currentTarget.dataset.taskId;
+                const currentDate = event.currentTarget.dataset.currentDate;
+                deleteTask(taskId, currentDate);
+            });
+        });
+
+        dayCard.querySelectorAll('.record-performance-btn').forEach(button => {
+            button.addEventListener('click', (event) => {
+                const taskId = event.currentTarget.dataset.taskId;
+                const currentDate = event.currentTarget.dataset.currentDate;
+                openEditTaskModal(taskId, currentDate, true); // Abre o modal em modo de edição, focando em desempenho
+            });
+        });
     }
 
     appState.fullPlannerRenderedDays = endIndex;
-
-    // Adiciona listeners para os botões "Mover Tarefa", "Trazer para Hoje", "Editar" e "Excluir"
-    fullPlannerDiv.querySelectorAll('.move-task-btn').forEach(button => {
-        button.addEventListener('click', (event) => {
-            const taskId = event.currentTarget.dataset.taskId;
-            const currentDate = event.currentTarget.dataset.currentDate;
-            openMoveTaskModal(taskId, currentDate);
-        });
-    });
-
-    fullPlannerDiv.querySelectorAll('.move-to-today-btn').forEach(button => {
-        button.addEventListener('click', (event) => {
-            const taskId = event.currentTarget.dataset.taskId;
-            const currentDate = event.currentTarget.dataset.currentDate;
-            moveTaskToToday(taskId, currentDate);
-        });
-    });
-
-    fullPlannerDiv.querySelectorAll('.edit-task-btn').forEach(button => {
-        button.addEventListener('click', (event) => {
-            const taskId = event.currentTarget.dataset.taskId;
-            const currentDate = event.currentTarget.dataset.currentDate;
-            openEditTaskModal(taskId, currentDate);
-        });
-    });
-
-    fullPlannerDiv.querySelectorAll('.delete-task-btn').forEach(button => {
-        button.addEventListener('click', (event) => {
-            const taskId = event.currentTarget.dataset.taskId;
-            const currentDate = event.currentTarget.dataset.currentDate;
-            deleteTask(taskId, currentDate);
-        });
-    });
-
-    fullPlannerDiv.querySelectorAll('.record-performance-btn').forEach(button => {
-        button.addEventListener('click', (event) => {
-            const taskId = event.currentTarget.dataset.taskId;
-            const currentDate = event.currentTarget.dataset.currentDate;
-            openEditTaskModal(taskId, currentDate, true); // Abre o modal em modo de edição, focando em desempenho
-        });
-    });
-
 
     // Mostra ou oculta o botão "Carregar Mais Dias"
     if (appState.fullPlannerRenderedDays < appState.plannerData.length) {
@@ -1086,7 +1116,7 @@ function openEditTaskModal(taskId, currentDate, focusPerformance = false) {
     const newTaskNotes = document.getElementById('newTaskNotes');
     const accuracyInputs = document.getElementById('accuracyInputs');
     const newCorrectAnswers = document.getElementById('newCorrectAnswers');
-    const newWrongAnswers = document.getElementById('newWrongAnswers');
+    const newWrongAnswers = document = document.getElementById('newWrongAnswers');
     const confirmAddTaskBtn = document.getElementById('confirmAddTaskBtn');
 
     // Configura para editar
@@ -1738,7 +1768,7 @@ window.onload = async function() {
 
 
     // Event listener para o botão de importar do arquivo
-    const importFileInput = document.getElementById('importFileInput');
+    const importFileInput = document.getElementById('importFileInput);
     document.getElementById('importPlannerFileBtn').addEventListener('click', () => {
         importFileInput.click(); // Abre o seletor de arquivos
     });
