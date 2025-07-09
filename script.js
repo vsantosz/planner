@@ -15,11 +15,6 @@ const motivationalQuotes = [
     { quote: "A força não vem da capacidade física. Ela vem de uma vontade indomável.", author: "Mahatma Gandhi" }
 ];
 
-// Configurações do Cronômetro (não Pomodoro)
-const TIMER_SETTINGS = {
-    // Não há durações fixas para um cronômetro de contagem crescente
-};
-
 // Estado global da aplicação
 let appState = {
     plannerData: [],
@@ -63,13 +58,14 @@ function loadAppState() {
         appState.activeTab = 'today'; // Define a aba inicial
     }
 
-    // Garante que todos os dias no plannerData tenham a propriedade dailyNotes e pomodoroSessionsCompleted
+    // Garante que todos os dias no plannerData tenham a propriedade dailyNotes
     appState.plannerData.forEach(day => {
         if (day.dailyNotes === undefined) {
             day.dailyNotes = '';
         }
-        if (day.pomodoroSessionsCompleted === undefined) {
-            day.pomodoroSessionsCompleted = 0;
+        // Remove pomodoroSessionsCompleted se existir, pois não é mais usado com o cronômetro
+        if (day.pomodoroSessionsCompleted !== undefined) {
+            delete day.pomodoroSessionsCompleted;
         }
     });
 }
@@ -274,7 +270,7 @@ function renderTodayTasks() {
 
     // Se não houver dados para o dia, cria um objeto básico para ele
     if (!todayData) {
-        todayData = { date: displayDateString, studyHours: 0, tasks: [], dailyNotes: '', pomodoroSessionsCompleted: 0 };
+        todayData = { date: displayDateString, studyHours: 0, tasks: [], dailyNotes: '' };
         appState.plannerData.push(todayData);
         appState.plannerData.sort((a, b) => new Date(a.date) - new Date(b.date)); // Mantém ordenado
     }
@@ -341,8 +337,6 @@ function renderTodayTasks() {
                 }
                 saveAppState();
                 updateSummary();
-                // Não chame renderFullPlanner(false) aqui para evitar loops de renderização desnecessários
-                // A atualização do full planner será feita quando o usuário trocar para a aba "Cronograma Completo"
             });
 
             // Adiciona listeners para botão de dicas
@@ -556,7 +550,6 @@ function calculateAllMetrics() {
     let totalCompletedTasks = 0;
     let totalStudyHoursAccumulated = 0;
     let daysWithStudyHours = 0;
-    let totalPomodoroSessions = 0;
 
     appState.plannerData.forEach(day => {
         totalTasks += day.tasks.length;
@@ -569,16 +562,13 @@ function calculateAllMetrics() {
             totalStudyHoursAccumulated += day.studyHours;
             daysWithStudyHours++;
         }
-        if (typeof day.pomodoroSessionsCompleted === 'number') {
-             totalPomodoroSessions += day.pomodoroSessionsCompleted;
-        }
     });
 
     const averageDailyStudyHours = daysWithStudyHours > 0 ? (totalStudyHoursAccumulated / daysWithStudyHours) : 0;
     const overallCompletionRate = totalTasks > 0 ? ((totalCompletedTasks / totalTasks) * 100).toFixed(1) : 0;
 
 
-    return { totalTasks, totalCompletedTasks, totalStudyHoursAccumulated, averageDailyStudyHours, totalPomodoroSessions, overallCompletionRate };
+    return { totalTasks, totalCompletedTasks, totalStudyHoursAccumulated, averageDailyStudyHours, overallCompletionRate };
 }
 
 // Função para atualizar o resumo
@@ -614,7 +604,7 @@ function updateSummary() {
     document.getElementById('weeklyStudyHours').textContent = `${weeklyHours.toFixed(1)}h`;
 
     // Atualiza o progresso total e novas métricas
-    const { totalTasks, totalCompletedTasks, totalStudyHoursAccumulated, averageDailyStudyHours, totalPomodoroSessions, overallCompletionRate } = calculateAllMetrics();
+    const { totalTasks, totalCompletedTasks, totalStudyHoursAccumulated, averageDailyStudyHours, overallCompletionRate } = calculateAllMetrics();
     
     const summaryGrid = document.querySelector('.summary-grid');
     if (summaryGrid) {
@@ -635,11 +625,6 @@ function updateSummary() {
         avgDailyStudyHoursCard.className = 'summary-card orange dynamic-summary-card';
         avgDailyStudyHoursCard.innerHTML = `<h3>Média Diária de Estudo</h3><p>${averageDailyStudyHours.toFixed(1)}h</p>`;
         summaryGrid.appendChild(avgDailyStudyHoursCard);
-
-        const totalPomodoroSessionsCard = document.createElement('div');
-        totalPomodoroSessionsCard.className = 'summary-card purple dynamic-summary-card';
-        totalPomodoroSessionsCard.innerHTML = `<h3>Sessões Pomodoro</h3><p>${totalPomodoroSessions}</p>`;
-        summaryGrid.appendChild(totalPomodoroSessionsCard);
 
         const totalTasksCreatedCard = document.createElement('div');
         totalTasksCreatedCard.className = 'summary-card green dynamic-summary-card';
@@ -702,7 +687,7 @@ function moveTask(taskId, fromDate, toDate) {
     let toDay;
     if (toDayIndex === -1) {
         // Se o dia de destino não existe, cria-o
-        toDay = { date: toDate, studyHours: 0, tasks: [], dailyNotes: '', pomodoroSessionsCompleted: 0 }; // Garante dailyNotes e pomodoroSessionsCompleted para novo dia
+        toDay = { date: toDate, studyHours: 0, tasks: [], dailyNotes: '' };
         appState.plannerData.push(toDay);
         appState.plannerData.sort((a, b) => new Date(a.date) - new Date(b.date)); // Mantém ordenado
     } else {
@@ -1016,13 +1001,14 @@ function findEmptyDays() {
 // Funções de importação
 function handleReplaceAll(importedData) {
     appState.plannerData = importedData;
-    // Garante que dailyNotes e pomodoroSessionsCompleted existam em todos os dias importados
+    // Garante que dailyNotes existam em todos os dias importados
     appState.plannerData.forEach(day => {
         if (day.dailyNotes === undefined) {
             day.dailyNotes = '';
         }
-        if (day.pomodoroSessionsCompleted === undefined) {
-            day.pomodoroSessionsCompleted = 0;
+        // Remove pomodoroSessionsCompleted se existir
+        if (day.pomodoroSessionsCompleted !== undefined) {
+            delete day.pomodoroSessionsCompleted;
         }
     });
     saveAppState();
@@ -1054,14 +1040,16 @@ function handleMergeUpdate(importedData) {
                 newPlannerData[existingDayIndex] = {
                     ...importedDay,
                     dailyNotes: importedDay.dailyNotes || '',
-                    pomodoroSessionsCompleted: importedDay.pomodoroSessionsCompleted || 0
+                    // Remove pomodoroSessionsCompleted se existir no dado importado
+                    ...(importedDay.pomodoroSessionsCompleted !== undefined && { pomodoroSessionsCompleted: undefined })
                 };
             } else {
                 // Adiciona o novo dia
                 newPlannerData.push({
                     ...importedDay,
                     dailyNotes: importedDay.dailyNotes || '',
-                    pomodoroSessionsCompleted: importedDay.pomodoroSessionsCompleted || 0
+                    // Remove pomodoroSessionsCompleted se existir no dado importado
+                    ...(importedDay.pomodoroSessionsCompleted !== undefined && { pomodoroSessionsCompleted: undefined })
                 });
             }
         });
@@ -1233,7 +1221,6 @@ async function openGenerateTasksModal() {
                     - "studyHours": número (sempre 0 inicialmente)
                     - "tasks": array de objetos de tarefas
                     - "dailyNotes": string (sempre vazia inicialmente)
-                    - "pomodoroSessionsCompleted": número (sempre 0 inicialmente)
 
                     Cada objeto de tarefa dentro do array "tasks" DEVE ter as seguintes propriedades:
                     - "id": string única (ex: "t" + timestamp + random_number). VOCÊ DEVE GERAR ESTE ID.
@@ -1313,7 +1300,10 @@ async function openGenerateTasksModal() {
                     });
                     day.dailyNotes = day.dailyNotes || '';
                     day.studyHours = day.studyHours || 0;
-                    day.pomodoroSessionsCompleted = day.pomodoroSessionsCompleted || 0;
+                    // Garante que pomodoroSessionsCompleted não seja adicionado
+                    if (day.pomodoroSessionsCompleted !== undefined) {
+                        delete day.pomodoroSessionsCompleted;
+                    }
                 });
 
                 generateTasksModal.classList.remove('show');
@@ -1352,6 +1342,7 @@ window.onload = async function() {
     const menuToggleBtn = document.getElementById('menuToggleBtn');
     const closeMenuBtn = document.getElementById('closeMenuBtn');
     const sideMenu = document.getElementById('sideMenu');
+    const sideMenuOverlay = document.getElementById('sideMenuOverlay'); // Novo overlay
 
     // Garante que o botão de fechar esteja oculto no carregamento inicial
     // E que o botão de abrir esteja visível
@@ -1361,15 +1352,24 @@ window.onload = async function() {
     // Event listener para o botão de abrir menu
     menuToggleBtn.addEventListener('click', () => {
         sideMenu.classList.add('open');
+        sideMenuOverlay.classList.add('show'); // Mostra o overlay
         menuToggleBtn.classList.remove('show'); // Oculta o botão de abrir
         closeMenuBtn.classList.add('show'); // Mostra o botão de fechar
     });
 
-    // Event listener para o botão de fechar menu
+    // Event listener para o botão de fechar menu e para o overlay
     closeMenuBtn.addEventListener('click', () => {
         sideMenu.classList.remove('open');
+        sideMenuOverlay.classList.remove('show'); // Oculta o overlay
         closeMenuBtn.classList.remove('show'); // Oculta o botão de fechar
         menuToggleBtn.classList.add('show'); // Mostra o botão de abrir
+    });
+
+    sideMenuOverlay.addEventListener('click', () => {
+        sideMenu.classList.remove('open');
+        sideMenuOverlay.classList.remove('show');
+        closeMenuBtn.classList.remove('show');
+        menuToggleBtn.classList.add('show');
     });
 
     // Event listeners para os botões de aba
@@ -1399,6 +1399,7 @@ window.onload = async function() {
                 renderPlanner();
                 // Garante que os botões do menu estejam no estado correto após o reset
                 sideMenu.classList.remove('open');
+                sideMenuOverlay.classList.remove('show');
                 closeMenuBtn.classList.remove('show');
                 menuToggleBtn.classList.add('show');
             }
@@ -1428,6 +1429,7 @@ window.onload = async function() {
         showConfirmationModal('Exportado!', 'Seu planner foi exportado com sucesso como JSON. Você pode salvá-lo em um serviço de nuvem como Google Drive ou Dropbox para acessá-lo em outros dispositivos.', 'Ok', 'confirm-btn green', () => {});
         // Garante que os botões do menu estejam no estado correto após a exportação
         sideMenu.classList.remove('open');
+        sideMenuOverlay.classList.remove('show');
         closeMenuBtn.classList.remove('show');
         menuToggleBtn.classList.add('show');
     });
@@ -1436,6 +1438,7 @@ window.onload = async function() {
     document.getElementById('copyPlannerBtn').addEventListener('click', () => {
         copyPlannerToClipboard();
         sideMenu.classList.remove('open'); // Fecha o menu após a ação
+        sideMenuOverlay.classList.remove('show');
         closeMenuBtn.classList.remove('show');
         menuToggleBtn.classList.add('show');
     });
@@ -1479,6 +1482,7 @@ window.onload = async function() {
                 
                 // Garante que os botões do menu estejam no estado correto após a importação
                 sideMenu.classList.remove('open');
+                sideMenuOverlay.classList.remove('show');
                 closeMenuBtn.classList.remove('show');
                 menuToggleBtn.classList.add('show');
 
@@ -1496,6 +1500,7 @@ window.onload = async function() {
     document.getElementById('importPlannerPasteBtn').addEventListener('click', () => {
         openPasteJsonModal();
         sideMenu.classList.remove('open'); // Fecha o menu após a ação
+        sideMenuOverlay.classList.remove('show');
         closeMenuBtn.classList.remove('show');
         menuToggleBtn.classList.add('show');
     });
@@ -1504,6 +1509,7 @@ window.onload = async function() {
     document.getElementById('generateTasksBtn').addEventListener('click', () => {
         openGenerateTasksModal();
         sideMenu.classList.remove('open'); // Fecha o menu após a ação
+        sideMenuOverlay.classList.remove('show');
         closeMenuBtn.classList.remove('show');
         menuToggleBtn.classList.add('show');
     });
@@ -1512,6 +1518,7 @@ window.onload = async function() {
     document.getElementById('markAllTasksCompletedBtn').addEventListener('click', () => {
         markAllTasksCompletedForToday();
         sideMenu.classList.remove('open'); // Fecha o menu após a ação
+        sideMenuOverlay.classList.remove('show');
         closeMenuBtn.classList.remove('show');
         menuToggleBtn.classList.add('show');
     });
@@ -1520,6 +1527,7 @@ window.onload = async function() {
     document.getElementById('clearAllTasksBtn').addEventListener('click', () => {
         clearAllTasksForToday();
         sideMenu.classList.remove('open'); // Fecha o menu após a ação
+        sideMenuOverlay.classList.remove('show');
         closeMenuBtn.classList.remove('show');
         menuToggleBtn.classList.add('show');
     });
