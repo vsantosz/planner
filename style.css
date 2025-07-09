@@ -530,6 +530,7 @@ body {
 .summary-card.green p { color: var(--success-color); }
 .summary-card.purple p { color: var(--secondary-color); }
 .summary-card.primary p { color: var(--primary-color); } /* Estilo para o novo card de progresso total */
+.summary-card.secondary p { color: var(--secondary-color); } /* Novo estilo para taxa de conclusão global */
 
 
 /* Citação Motivacional */
@@ -835,6 +836,139 @@ body {
 
 
 /* Responsividade */
+@media (max-width: 767px) { /* Ajustes para telas menores que 768px (mobile) */
+    body {
+        padding: 0.5rem;
+    }
+    .container {
+        margin: 0.5rem auto;
+        padding: 1rem;
+        border-radius: 1rem;
+    }
+    .header h1 {
+        font-size: 2rem; /* Reduz o tamanho do título para mobile */
+    }
+    .header p {
+        font-size: 0.9rem; /* Reduz o tamanho do parágrafo */
+    }
+    .menu-toggle-button, .close-menu-button {
+        top: 0.8rem;
+        right: 0.8rem;
+        width: 40px; /* Reduz o tamanho dos botões de menu */
+        height: 40px;
+    }
+    .menu-toggle-button svg, .close-menu-button svg {
+        width: 20px; /* Reduz o ícone */
+        height: 20px;
+    }
+    .side-menu {
+        width: 240px; /* Reduz a largura do menu lateral */
+        right: -240px;
+        padding: 1.5rem 1rem;
+    }
+    .tab-buttons {
+        flex-wrap: wrap; /* Permite que os botões de aba quebrem linha */
+        padding: 0.3rem;
+        border-radius: 0.8rem;
+    }
+    .tab-button {
+        padding: 0.7rem 1rem;
+        font-size: 0.9rem;
+        margin: 0.2rem; /* Adiciona um pequeno espaçamento entre os botões */
+    }
+    .today-section {
+        padding: 1.5rem;
+    }
+    .today-section h2 {
+        font-size: 1.8rem; /* Reduz o título da seção de hoje */
+    }
+    .study-timer-container {
+        padding: 1rem;
+    }
+    .timer-display {
+        font-size: 2.2rem; /* Reduz o tamanho do timer */
+    }
+    .timer-btn {
+        padding: 0.7rem 1.2rem;
+        font-size: 0.9rem;
+    }
+    .today-task-item {
+        padding: 0.8rem 1rem;
+        font-size: 1rem; /* Reduz o tamanho da fonte da tarefa */
+    }
+    .today-task-item input[type="checkbox"] {
+        min-width: 18px; /* Ajusta o checkbox */
+        min-height: 18px;
+    }
+    .today-task-item label {
+        font-size: 1rem;
+    }
+    .task-icon {
+        width: 1.1rem; /* Reduz o ícone da tarefa */
+        height: 1.1rem;
+    }
+    .action-btn {
+        padding: 0.4rem; /* Reduz o padding dos botões de ação */
+    }
+    .action-btn svg {
+        width: 16px; /* Reduz o ícone dos botões de ação */
+        height: 16px;
+    }
+    .add-task-fab {
+        width: 48px; /* Reduz o FAB */
+        height: 48px;
+        bottom: 1rem;
+        right: 1rem;
+        font-size: 1.8rem;
+    }
+    .add-task-fab svg {
+        width: 24px;
+        height: 24px;
+    }
+    .summary-grid {
+        grid-template-columns: 1fr; /* Uma coluna para mobile */
+        gap: 1rem;
+    }
+    .summary-card h3 {
+        font-size: 1.1rem;
+    }
+    .summary-card p {
+        font-size: 2.2rem; /* Reduz o tamanho da fonte dos números do resumo */
+    }
+    .modal-content {
+        padding: 1.5rem;
+        border-radius: 1rem;
+    }
+    .modal-content h3 {
+        font-size: 1.4rem;
+    }
+    .modal-content p {
+        font-size: 0.95rem;
+    }
+    .modal-buttons {
+        flex-direction: column; /* Botões do modal empilhados */
+        gap: 0.8rem;
+    }
+    .modal-btn {
+        padding: 0.7rem 1.5rem;
+        width: 100%; /* Ocupa toda a largura */
+    }
+    .icon-button {
+        width: 40px;
+        height: 40px;
+    }
+    .icon-button svg {
+        width: 20px;
+        height: 20px;
+    }
+    #backToTopBtn {
+        width: 50px;
+        height: 50px;
+        bottom: 15px;
+        right: 15px;
+    }
+}
+
 @media (min-width: 640px) { /* sm */
     .container {
         padding: 2rem;

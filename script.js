@@ -610,9 +610,13 @@ function getTaskTypeText(type) {
 function calculateTotalProgress() {
     let totalTasks = 0;
     let totalCompletedTasks = 0;
+    let totalOverallStudyHours = 0;
 
     appState.plannerData.forEach(day => {
         totalTasks += day.tasks.length;
+        if (typeof day.studyHours === 'number') {
+            totalOverallStudyHours += day.studyHours;
+        }
         day.tasks.forEach(task => {
             if (task.completed) {
                 totalCompletedTasks++;
@@ -620,7 +624,9 @@ function calculateTotalProgress() {
         });
     });
 
-    return { totalTasks, totalCompletedTasks };
+    const overallCompletionRate = totalTasks > 0 ? ((totalCompletedTasks / totalTasks) * 100).toFixed(1) : 0;
+
+    return { totalTasks, totalCompletedTasks, totalOverallStudyHours, overallCompletionRate };
 }
 
 // Função para atualizar o resumo
@@ -655,10 +661,13 @@ function updateSummary() {
     }
     document.getElementById('weeklyStudyHours').textContent = `${weeklyHours.toFixed(1)}h`;
 
-    // Atualiza o progresso total
-    const { totalTasks, totalCompletedTasks } = calculateTotalProgress();
+    // Atualiza o progresso total e novas métricas
+    const { totalTasks, totalCompletedTasks, totalOverallStudyHours, overallCompletionRate } = calculateTotalProgress();
     const totalProgressPercentage = totalTasks > 0 ? ((totalCompletedTasks / totalTasks) * 100).toFixed(1) : 0;
+
     document.getElementById('totalProgressDisplay').textContent = `${totalProgressPercentage}% (${totalCompletedTasks}/${totalTasks})`;
+    document.getElementById('totalOverallStudyHours').textContent = `${totalOverallStudyHours.toFixed(1)}h`;
+    document.getElementById('overallCompletionRate').textContent = `${overallCompletionRate}%`;
 }
 
 // Função para exibir uma citação motivacional aleatória
@@ -922,6 +931,59 @@ function deleteTask(taskId, currentDate) {
         }
     );
 }
+
+// Função para marcar todas as tarefas do dia como concluídas
+function markAllTasksCompletedForToday() {
+    const todayData = appState.plannerData.find(day => day.date === appState.currentDisplayDate);
+    if (todayData) {
+        if (todayData.tasks.length === 0) {
+            showConfirmationModal('Atenção', 'Não há tarefas para marcar como concluídas neste dia.', 'Ok', 'modal-btn blue', () => {});
+            return;
+        }
+        showConfirmationModal(
+            'Confirmar Ação',
+            'Tem certeza que deseja marcar TODAS as tarefas de hoje como concluídas?',
+            'Sim, Marcar',
+            'confirm-btn green',
+            () => {
+                todayData.tasks.forEach(task => {
+                    task.completed = true;
+                });
+                saveAppState();
+                renderPlanner();
+                showConfirmationModal('Sucesso!', 'Todas as tarefas de hoje foram marcadas como concluídas!', 'Ok', 'modal-btn green', () => {});
+            }
+        );
+    } else {
+        showConfirmationModal('Erro', 'Não foi possível encontrar os dados para o dia atual.', 'Ok', 'modal-btn red', () => {});
+    }
+}
+
+// Função para limpar todas as tarefas do dia
+function clearAllTasksForToday() {
+    const todayData = appState.plannerData.find(day => day.date === appState.currentDisplayDate);
+    if (todayData) {
+        if (todayData.tasks.length === 0) {
+            showConfirmationModal('Atenção', 'Não há tarefas para limpar neste dia.', 'Ok', 'modal-btn blue', () => {});
+            return;
+        }
+        showConfirmationModal(
+            'Confirmar Ação',
+            'Tem certeza que deseja limpar TODAS as tarefas de hoje? Esta ação não pode ser desfeita.',
+            'Sim, Limpar',
+            'confirm-btn red',
+            () => {
+                todayData.tasks = [];
+                saveAppState();
+                renderPlanner();
+                showConfirmationModal('Sucesso!', 'Todas as tarefas de hoje foram removidas!', 'Ok', 'modal-btn green', () => {});
+            }
+        );
+    } else {
+        showConfirmationModal('Erro', 'Não foi possível encontrar os dados para o dia atual.', 'Ok', 'modal-btn red', () => {});
+    }
+}
+
 
 // Função para alternar as abas
 function switchTab(tabId) {
@@ -1210,7 +1272,8 @@ function openGenerateTasksModal() {
                 }
             };
 
-            const apiKey = ""; // Canvas will automatically provide the API key
+            // A API Key é injetada automaticamente pelo ambiente Canvas para gemini-2.0-flash
+            const apiKey = "";
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
             const response = await fetch(apiUrl, {
@@ -1438,6 +1501,22 @@ window.onload = async function() {
     // Event listener para o botão de gerar tarefas com IA
     document.getElementById('generateTasksBtn').addEventListener('click', () => {
         openGenerateTasksModal();
+        sideMenu.classList.remove('open'); // Fecha o menu após a ação
+        closeMenuBtn.classList.remove('show');
+        menuToggleBtn.classList.add('show');
+    });
+
+    // Event listener para o botão de marcar todas as tarefas como concluídas
+    document.getElementById('markAllTasksCompletedBtn').addEventListener('click', () => {
+        markAllTasksCompletedForToday();
+        sideMenu.classList.remove('open'); // Fecha o menu após a ação
+        closeMenuBtn.classList.remove('show');
+        menuToggleBtn.classList.add('show');
+    });
+
+    // Event listener para o botão de limpar todas as tarefas
+    document.getElementById('clearAllTasksBtn').addEventListener('click', () => {
+        clearAllTasksForToday();
         sideMenu.classList.remove('open'); // Fecha o menu após a ação
         closeMenuBtn.classList.remove('show');
         menuToggleBtn.classList.add('show');
