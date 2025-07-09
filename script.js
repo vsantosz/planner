@@ -42,6 +42,11 @@ let appState = {
 const DAYS_PER_LOAD = 30; // Quantidade de dias para carregar por vez no cronograma completo
 const MIN_DATE = '2025-07-08'; // Data mínima permitida para navegação
 
+// Chave da API Groq (substitua pelo seu token real)
+const GROQ_API_KEY = "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"; // Use a chave fornecida pelo usuário
+const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+const GROQ_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
+
 // Função para carregar o estado do planner do localStorage
 function loadAppState() {
     const savedState = localStorage.getItem('plannerState_v5'); // Usando v5 para evitar conflito
@@ -1071,7 +1076,8 @@ function handleMergeUpdate(importedData) {
             if (existingDayIndex !== -1) {
                 // Sobrescreve o dia existente
                 newPlannerData[existingDayIndex] = { ...importedDay, dailyNotes: importedDay.dailyNotes || '' }; // Garante dailyNotes
-            } else {
+            }
+            else {
                 // Adiciona o novo dia
                 newPlannerData.push({ ...importedDay, dailyNotes: importedDay.dailyNotes || '' }); // Garante dailyNotes
             }
@@ -1206,7 +1212,7 @@ function openPasteJsonModal() {
 
 
 // Função para abrir o modal de geração de tarefas com IA
-function openGenerateTasksModal() {
+async function openGenerateTasksModal() {
     const generateTasksModal = document.getElementById('generateTasksModal');
     const generateTasksPrompt = document.getElementById('generateTasksPrompt');
     const confirmGenerateTasksBtn = document.getElementById('confirmGenerateTasksBtn');
@@ -1234,95 +1240,95 @@ function openGenerateTasksModal() {
         cancelGenerateTasksBtn.disabled = true; // Desabilita o botão de cancelar
 
         try {
-            const chatHistory = [];
             const today = new Date().toISOString().split('T')[0];
-            chatHistory.push({ role: "user", parts: [{ text: `Gere um cronograma de estudos para um planner, cobrindo com base na seguinte descrição: "${promptText}". As tarefas devem começar a partir de hoje (${today}). Inclua tarefas diárias com descrição, tipo (study, questions, discursive, simulado, revision, rest), e uma dica/bizú relevante para concursos públicos. Gere no formato JSON estritamente seguindo o schema fornecido. Certifique-se de que cada dia tenha uma propriedade 'date' no formato 'YYYY-MM-DD', 'studyHours' como número, 'tasks' como array de objetos, e 'dailyNotes' como string vazia. Para cada tarefa em 'tasks', inclua 'id' (string única), 'description' (string), 'completed' (boolean, sempre false inicialmente), 'type' (string de um dos tipos listados), 'notes' (string vazia), e 'tips' (string).` }] });
+            const messages = [
+                {
+                    role: "system",
+                    content: `Você é um assistente útil que gera cronogramas de estudo para concursos públicos. Sua saída deve ser estritamente um objeto JSON.
+                    O JSON deve ser um array de objetos, onde cada objeto representa um dia do planner.
+                    Cada objeto de dia deve ter as seguintes propriedades:
+                    - "date": string no formato "YYYY-MM-DD"
+                    - "studyHours": número (sempre 0 inicialmente)
+                    - "tasks": array de objetos de tarefas
+                    - "dailyNotes": string (sempre vazia inicialmente)
 
-            const payload = {
-                contents: chatHistory,
-                generationConfig: {
-                    responseMimeType: "application/json",
-                    responseSchema: {
-                        type: "ARRAY",
-                        items: {
-                            type: "OBJECT",
-                            properties: {
-                                "date": { "type": "STRING", "format": "date" },
-                                "studyHours": { "type": "NUMBER" },
-                                "tasks": {
-                                    "type": "ARRAY",
-                                    "items": {
-                                        "type": "OBJECT",
-                                        "properties": {
-                                            "id": { "type": "STRING" },
-                                            "description": { "type": "STRING" },
-                                            "completed": { "type": "BOOLEAN" },
-                                            "type": { "type": "STRING", "enum": ["study", "questions", "discursive", "simulado", "revision", "rest"] },
-                                            "notes": { "type": "STRING" },
-                                            "tips": { "type": "STRING" }
-                                        },
-                                        "required": ["id", "description", "completed", "type", "notes", "tips"]
-                                    }
-                                },
-                                "dailyNotes": { "type": "STRING" }
-                            },
-                            "required": ["date", "studyHours", "tasks", "dailyNotes"]
-                        }
-                    }
+                    Cada objeto de tarefa dentro do array "tasks" deve ter as seguintes propriedades:
+                    - "id": string única (ex: "t" + timestamp + random_number)
+                    - "description": string (descrição da tarefa)
+                    - "completed": boolean (sempre false inicialmente)
+                    - "type": string (um dos seguintes valores: "study", "questions", "discursive", "simulado", "revision", "rest")
+                    - "notes": string (sempre vazia inicialmente)
+                    - "tips": string (uma dica ou bizú relevante para concursos públicos)
+
+                    As tarefas devem começar a partir de hoje (${today}).
+                    `
+                },
+                {
+                    role: "user",
+                    content: `Gere um cronograma de estudos para um planner, cobrindo com base na seguinte descrição: "${promptText}".`
                 }
-            };
+            ];
 
-            // A API Key é injetada automaticamente pelo ambiente Canvas para gemini-2.0-flash
-            const apiKey = "";
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+            const response = await fetch(GROQ_API_URL, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${GROQ_API_KEY}`
+                },
+                body: JSON.stringify({
+                    model: GROQ_MODEL,
+                    messages: messages,
+                    response_format: { type: "json_object" } // Solicita resposta em JSON
+                })
             });
 
             const result = await response.json();
-            
+
             generateTasksLoading.classList.add('hidden'); // Oculta o loader
             confirmGenerateTasksBtn.disabled = false; // Habilita o botão
             generateTasksPrompt.disabled = false; // Habilita o textarea
             cancelGenerateTasksBtn.disabled = false; // Habilita o botão de cancelar
 
-            if (result.candidates && result.candidates.length > 0 &&
-                result.candidates[0].content && result.candidates[0].content.parts &&
-                result.candidates[0].content.parts.length > 0) {
-                const jsonString = result.candidates[0].content.parts[0].text;
+            if (result.choices && result.choices.length > 0 && result.choices[0].message && result.choices[0].message.content) {
+                const jsonString = result.choices[0].message.content;
                 const generatedPlannerData = JSON.parse(jsonString);
 
-                // Adiciona IDs únicos às tarefas geradas, se o LLM não as tiver fornecido
-                generatedPlannerData.forEach(day => {
+                // O Groq com response_format: { type: "json_object" } já deve retornar um JSON válido.
+                // No entanto, é bom ter validações adicionais e preenchimento de IDs.
+                let dataToProcess = [];
+                if (generatedPlannerData.plannerData && Array.isArray(generatedPlannerData.plannerData)) {
+                    dataToProcess = generatedPlannerData.plannerData;
+                } else if (Array.isArray(generatedPlannerData)) {
+                    dataToProcess = generatedPlannerData;
+                } else {
+                    throw new Error("Formato de JSON inesperado da IA.");
+                }
+
+                dataToProcess.forEach(day => {
                     day.tasks.forEach(task => {
                         if (!task.id) {
                             task.id = generateUniqueId();
                         }
-                        // Garante que 'notes' e 'tips' sejam strings, mesmo que vazias
                         task.notes = task.notes || '';
                         task.tips = task.tips || '';
-                        // Garante que 'completed' seja boolean
                         task.completed = !!task.completed;
                     });
-                    // Garante que 'dailyNotes' exista
                     day.dailyNotes = day.dailyNotes || '';
+                    day.studyHours = day.studyHours || 0; // Garante que studyHours seja 0 se não vier
                 });
 
                 generateTasksModal.classList.remove('show');
-                openImportOptionsModal(generatedPlannerData); // Oferece opções de importação/mesclagem
+                openImportOptionsModal(dataToProcess); // Oferece opções de importação/mesclagem
             } else {
                 showConfirmationModal('Erro na Geração', 'Não foi possível gerar as tarefas. A IA pode não ter entendido a sua solicitação ou gerou um formato inesperado. Por favor, tente novamente com uma descrição diferente.', 'Ok', 'modal-btn red', () => {});
             }
         } catch (error) {
-            console.error("Erro ao chamar a API Gemini:", error);
+            console.error("Erro ao chamar a API Groq:", error);
             generateTasksLoading.classList.add('hidden'); // Oculta o loader
             confirmGenerateTasksBtn.disabled = false; // Habilita o botão
             generateTasksPrompt.disabled = false; // Habilita o textarea
             cancelGenerateTasksBtn.disabled = false; // Habilita o botão de cancelar
-            showConfirmationModal('Erro na Conexão', 'Ocorreu um erro ao se comunicar com a IA. Verifique sua conexão com a internet ou tente novamente mais tarde.', 'Ok', 'modal-btn red', () => {});
+            showConfirmationModal('Erro na Conexão', `Ocorreu um erro ao se comunicar com a IA: ${error.message}. Verifique sua conexão com a internet ou tente novamente mais tarde.`, 'Ok', 'modal-btn red', () => {});
         }
     };
 
