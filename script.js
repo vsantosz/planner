@@ -42,8 +42,8 @@ let appState = {
 const DAYS_PER_LOAD = 30; // Quantidade de dias para carregar por vez no cronograma completo
 const MIN_DATE = '2025-07-08'; // Data mínima permitida para navegação
 
-// Chave da API Groq (substitua pelo seu token real)
-const GROQ_API_KEY = "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"; // Use a chave fornecida pelo usuário
+// Chave da API Groq
+const GROQ_API_KEY = "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"; // Chave fornecida pelo usuário
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 const GROQ_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
 
@@ -74,10 +74,13 @@ function loadAppState() {
         appState.activeTab = 'today'; // Define a aba inicial
     }
 
-    // Garante que todos os dias no plannerData tenham a propriedade dailyNotes
+    // Garante que todos os dias no plannerData tenham a propriedade dailyNotes e pomodoroSessionsCompleted
     appState.plannerData.forEach(day => {
         if (day.dailyNotes === undefined) {
             day.dailyNotes = '';
+        }
+        if (day.pomodoroSessionsCompleted === undefined) {
+            day.pomodoroSessionsCompleted = 0;
         }
     });
 }
@@ -192,6 +195,8 @@ function startPomodoro() {
     }
     appState.isTimerRunning = true;
     appState.timerStartTime = Date.now();
+    // Atualiza o display imediatamente para mostrar a duração total antes de começar a contagem regressiva
+    updateTimerDisplay();
     appState.timerInterval = setInterval(updatePomodoroTimer, 1000);
     setTimerButtonsState();
     saveAppState();
@@ -219,6 +224,11 @@ function stopPomodoro() {
         if (todayData) {
             const timeStudiedThisSession = POMODORO_SETTINGS.STUDY_DURATION - appState.pomodoroRemainingTime;
             todayData.studyHours += timeStudiedThisSession / (1000 * 60 * 60);
+            // Increment pomodoroSessionsCompleted for the current day
+            if (todayData.pomodoroSessionsCompleted === undefined) {
+                todayData.pomodoroSessionsCompleted = 0;
+            }
+            todayData.pomodoroSessionsCompleted++;
             document.getElementById('studyHoursInput').value = todayData.studyHours.toFixed(1);
         }
     }
@@ -336,7 +346,7 @@ function renderTodayTasks() {
 
     // Se não houver dados para o dia, cria um objeto básico para ele
     if (!todayData) {
-        todayData = { date: displayDateString, studyHours: 0, tasks: [], dailyNotes: '' };
+        todayData = { date: displayDateString, studyHours: 0, tasks: [], dailyNotes: '', pomodoroSessionsCompleted: 0 }; // Added pomodoroSessionsCompleted
         appState.plannerData.push(todayData);
         appState.plannerData.sort((a, b) => new Date(a.date) - new Date(b.date)); // Mantém ordenado
     }
@@ -464,6 +474,7 @@ function renderFullPlanner(reset = true) {
                 ${new Date(dayData.date + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
                 <span>Estudo: ${dayData.studyHours.toFixed(1)}h</span>
             </h3>
+            ${dayData.dailyNotes ? `<div class="daily-notes-display mt-3 p-3 bg-blue-50 rounded-lg text-sm text-gray-700">${dayData.dailyNotes}</div>` : ''}
             <ul class="day-task-list">
                 ${dayData.tasks.map(task => `
                     <li class="day-task-item ${task.completed ? 'completed' : ''}">
@@ -611,27 +622,33 @@ function getTaskTypeText(type) {
     }
 }
 
-// Função para calcular o progresso total do cronograma
-function calculateTotalProgress() {
+// Função para calcular o progresso total do cronograma e novas métricas
+function calculateAllMetrics() {
     let totalTasks = 0;
     let totalCompletedTasks = 0;
-    let totalOverallStudyHours = 0;
+    let totalStudyHoursAccumulated = 0;
+    let daysWithStudyHours = 0;
+    let totalPomodoroSessions = 0;
 
     appState.plannerData.forEach(day => {
         totalTasks += day.tasks.length;
-        if (typeof day.studyHours === 'number') {
-            totalOverallStudyHours += day.studyHours;
-        }
         day.tasks.forEach(task => {
             if (task.completed) {
                 totalCompletedTasks++;
             }
         });
+        if (typeof day.studyHours === 'number' && day.studyHours > 0) {
+            totalStudyHoursAccumulated += day.studyHours;
+            daysWithStudyHours++;
+        }
+        if (typeof day.pomodoroSessionsCompleted === 'number') {
+             totalPomodoroSessions += day.pomodoroSessionsCompleted;
+        }
     });
 
-    const overallCompletionRate = totalTasks > 0 ? ((totalCompletedTasks / totalTasks) * 100).toFixed(1) : 0;
+    const averageDailyStudyHours = daysWithStudyHours > 0 ? (totalStudyHoursAccumulated / daysWithStudyHours) : 0;
 
-    return { totalTasks, totalCompletedTasks, totalOverallStudyHours, overallCompletionRate };
+    return { totalTasks, totalCompletedTasks, totalStudyHoursAccumulated, averageDailyStudyHours, totalPomodoroSessions };
 }
 
 // Função para atualizar o resumo
@@ -667,12 +684,36 @@ function updateSummary() {
     document.getElementById('weeklyStudyHours').textContent = `${weeklyHours.toFixed(1)}h`;
 
     // Atualiza o progresso total e novas métricas
-    const { totalTasks, totalCompletedTasks, totalOverallStudyHours, overallCompletionRate } = calculateTotalProgress();
+    const { totalTasks, totalCompletedTasks, totalStudyHoursAccumulated, averageDailyStudyHours, totalPomodoroSessions } = calculateAllMetrics();
     const totalProgressPercentage = totalTasks > 0 ? ((totalCompletedTasks / totalTasks) * 100).toFixed(1) : 0;
-
     document.getElementById('totalProgressDisplay').textContent = `${totalProgressPercentage}% (${totalCompletedTasks}/${totalTasks})`;
-    document.getElementById('totalOverallStudyHours').textContent = `${totalOverallStudyHours.toFixed(1)}h`;
-    document.getElementById('overallCompletionRate').textContent = `${overallCompletionRate}%`;
+
+    // Adiciona os novos cards de resumo dinamicamente
+    const summaryGrid = document.querySelector('.summary-grid');
+    if (summaryGrid) {
+        // Remove os cards dinâmicos existentes para evitar duplicação
+        summaryGrid.querySelectorAll('.dynamic-summary-card').forEach(card => card.remove());
+
+        const totalStudyHoursCard = document.createElement('div');
+        totalStudyHoursCard.className = 'summary-card blue dynamic-summary-card';
+        totalStudyHoursCard.innerHTML = `<h3>Total Horas Estudadas</h3><p>${totalStudyHoursAccumulated.toFixed(1)}h</p>`;
+        summaryGrid.appendChild(totalStudyHoursCard);
+
+        const avgDailyStudyHoursCard = document.createElement('div');
+        avgDailyStudyHoursCard.className = 'summary-card orange dynamic-summary-card';
+        avgDailyStudyHoursCard.innerHTML = `<h3>Média Diária de Estudo</h3><p>${averageDailyStudyHours.toFixed(1)}h</p>`;
+        summaryGrid.appendChild(avgDailyStudyHoursCard);
+
+        const totalPomodoroSessionsCard = document.createElement('div');
+        totalPomodoroSessionsCard.className = 'summary-card purple dynamic-summary-card';
+        totalPomodoroSessionsCard.innerHTML = `<h3>Sessões Pomodoro</h3><p>${totalPomodoroSessions}</p>`;
+        summaryGrid.appendChild(totalPomodoroSessionsCard);
+
+        const totalTasksCreatedCard = document.createElement('div');
+        totalTasksCreatedCard.className = 'summary-card green dynamic-summary-card';
+        totalTasksCreatedCard.innerHTML = `<h3>Total de Tarefas Criadas</h3><p>${totalTasks}</p>`;
+        summaryGrid.appendChild(totalTasksCreatedCard);
+    }
 }
 
 // Função para exibir uma citação motivacional aleatória
@@ -729,7 +770,7 @@ function moveTask(taskId, fromDate, toDate) {
     let toDay;
     if (toDayIndex === -1) {
         // Se o dia de destino não existe, cria-o
-        toDay = { date: toDate, studyHours: 0, tasks: [], dailyNotes: '' }; // Garante dailyNotes para novo dia
+        toDay = { date: toDate, studyHours: 0, tasks: [], dailyNotes: '', pomodoroSessionsCompleted: 0 }; // Garante dailyNotes e pomodoroSessionsCompleted para novo dia
         appState.plannerData.push(toDay);
         appState.plannerData.sort((a, b) => new Date(a.date) - new Date(b.date)); // Mantém ordenado
     } else {
@@ -1043,10 +1084,13 @@ function findEmptyDays() {
 // Funções de importação
 function handleReplaceAll(importedData) {
     appState.plannerData = importedData;
-    // Garante que dailyNotes exista em todos os dias importados
+    // Garante que dailyNotes e pomodoroSessionsCompleted existam em todos os dias importados
     appState.plannerData.forEach(day => {
         if (day.dailyNotes === undefined) {
             day.dailyNotes = '';
+        }
+        if (day.pomodoroSessionsCompleted === undefined) {
+            day.pomodoroSessionsCompleted = 0;
         }
     });
     saveAppState();
@@ -1075,11 +1119,18 @@ function handleMergeUpdate(importedData) {
             const existingDayIndex = newPlannerData.findIndex(day => day.date === importedDay.date);
             if (existingDayIndex !== -1) {
                 // Sobrescreve o dia existente
-                newPlannerData[existingDayIndex] = { ...importedDay, dailyNotes: importedDay.dailyNotes || '' }; // Garante dailyNotes
-            }
-            else {
+                newPlannerData[existingDayIndex] = {
+                    ...importedDay,
+                    dailyNotes: importedDay.dailyNotes || '',
+                    pomodoroSessionsCompleted: importedDay.pomodoroSessionsCompleted || 0 // Ensure this is set
+                };
+            } else {
                 // Adiciona o novo dia
-                newPlannerData.push({ ...importedDay, dailyNotes: importedDay.dailyNotes || '' }); // Garante dailyNotes
+                newPlannerData.push({
+                    ...importedDay,
+                    dailyNotes: importedDay.dailyNotes || '',
+                    pomodoroSessionsCompleted: importedDay.pomodoroSessionsCompleted || 0 // Ensure this is set
+                });
             }
         });
 
@@ -1244,19 +1295,19 @@ async function openGenerateTasksModal() {
             const messages = [
                 {
                     role: "system",
-                    content: `Você é um assistente útil que gera cronogramas de estudo para concursos públicos. Sua saída deve ser estritamente um objeto JSON.
-                    O JSON deve ser um array de objetos, onde cada objeto representa um dia do planner.
-                    Cada objeto de dia deve ter as seguintes propriedades:
-                    - "date": string no formato "YYYY-MM-DD"
+                    content: `Você é um assistente útil que gera cronogramas de estudo para concursos públicos. Sua saída deve ser estritamente um array JSON de objetos, onde cada objeto representa um dia do planner.
+                    Cada objeto de dia DEVE ter as seguintes propriedades:
+                    - "date": string no formato "YYYY-MM-DD" (ex: "2025-07-09")
                     - "studyHours": número (sempre 0 inicialmente)
                     - "tasks": array de objetos de tarefas
                     - "dailyNotes": string (sempre vazia inicialmente)
+                    - "pomodoroSessionsCompleted": número (sempre 0 inicialmente)
 
-                    Cada objeto de tarefa dentro do array "tasks" deve ter as seguintes propriedades:
-                    - "id": string única (ex: "t" + timestamp + random_number)
+                    Cada objeto de tarefa dentro do array "tasks" DEVE ter as seguintes propriedades:
+                    - "id": string única (ex: "t" + timestamp + random_number). VOCÊ DEVE GERAR ESTE ID.
                     - "description": string (descrição da tarefa)
                     - "completed": boolean (sempre false inicialmente)
-                    - "type": string (um dos seguintes valores: "study", "questions", "discursive", "simulado", "revision", "rest")
+                    - "type": string (UM DOS SEGUINTES VALORES: "study", "questions", "discursive", "simulado", "revision", "rest")
                     - "notes": string (sempre vazia inicialmente)
                     - "tips": string (uma dica ou bizú relevante para concursos públicos)
 
@@ -1269,42 +1320,55 @@ async function openGenerateTasksModal() {
                 }
             ];
 
-            const response = await fetch(GROQ_API_URL, {
+            const response = await fetch(GROQ_API_URL, { // Usando GROQ_API_URL
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "Authorization": `Bearer ${GROQ_API_KEY}`
+                    "Authorization": `Bearer ${GROQ_API_KEY}` // Usando GROQ_API_KEY
                 },
                 body: JSON.stringify({
-                    model: GROQ_MODEL,
+                    model: GROQ_MODEL, // Usando GROQ_MODEL
                     messages: messages,
-                    response_format: { type: "json_object" } // Solicita resposta em JSON
+                    response_format: { type: "json_object" }
                 })
             });
 
             const result = await response.json();
 
-            generateTasksLoading.classList.add('hidden'); // Oculta o loader
-            confirmGenerateTasksBtn.disabled = false; // Habilita o botão
-            generateTasksPrompt.disabled = false; // Habilita o textarea
-            cancelGenerateTasksBtn.disabled = false; // Habilita o botão de cancelar
+            generateTasksLoading.classList.add('hidden');
+            confirmGenerateTasksBtn.disabled = false;
+            generateTasksPrompt.disabled = false;
+            cancelGenerateTasksBtn.disabled = false;
 
             if (result.choices && result.choices.length > 0 && result.choices[0].message && result.choices[0].message.content) {
-                const jsonString = result.choices[0].message.content;
-                const generatedPlannerData = JSON.parse(jsonString);
+                let jsonString = result.choices[0].message.content;
+                let generatedPlannerData;
 
-                // O Groq com response_format: { type: "json_object" } já deve retornar um JSON válido.
-                // No entanto, é bom ter validações adicionais e preenchimento de IDs.
-                let dataToProcess = [];
-                if (generatedPlannerData.plannerData && Array.isArray(generatedPlannerData.plannerData)) {
-                    dataToProcess = generatedPlannerData.plannerData;
-                } else if (Array.isArray(generatedPlannerData)) {
-                    dataToProcess = generatedPlannerData;
-                } else {
-                    throw new Error("Formato de JSON inesperado da IA.");
+                try {
+                    // Tenta fazer o parse do conteúdo diretamente
+                    generatedPlannerData = JSON.parse(jsonString);
+
+                    // Se for um objeto e contiver uma chave 'plannerData' que é um array, usa isso.
+                    if (generatedPlannerData.plannerData && Array.isArray(generatedPlannerData.plannerData)) {
+                        generatedPlannerData = generatedPlannerData.plannerData;
+                    } else if (!Array.isArray(generatedPlannerData)) {
+                        // Se não for um array no nível superior, e não for um objeto com 'plannerData',
+                        // pode ser um array stringificado dentro de um objeto JSON. Tenta fazer o parse novamente.
+                        // Isso lida com casos em que o modelo pode retornar `{"content": "[...]"}`
+                        // ou apenas um array stringificado `"[...]"`.
+                        generatedPlannerData = JSON.parse(generatedPlannerData);
+                    }
+                } catch (e) {
+                    console.error("Erro ao fazer parse do JSON gerado pela IA (tentativa dupla):", e);
+                    throw new Error("Formato de JSON inesperado da IA. Não foi possível fazer o parse.");
                 }
 
-                dataToProcess.forEach(day => {
+                // Garante que seja um array para processamento posterior
+                if (!Array.isArray(generatedPlannerData)) {
+                    throw new Error("A IA não retornou um array de dados de planner válido.");
+                }
+
+                generatedPlannerData.forEach(day => {
                     day.tasks.forEach(task => {
                         if (!task.id) {
                             task.id = generateUniqueId();
@@ -1314,20 +1378,21 @@ async function openGenerateTasksModal() {
                         task.completed = !!task.completed;
                     });
                     day.dailyNotes = day.dailyNotes || '';
-                    day.studyHours = day.studyHours || 0; // Garante que studyHours seja 0 se não vier
+                    day.studyHours = day.studyHours || 0;
+                    day.pomodoroSessionsCompleted = day.pomodoroSessionsCompleted || 0;
                 });
 
                 generateTasksModal.classList.remove('show');
-                openImportOptionsModal(dataToProcess); // Oferece opções de importação/mesclagem
+                openImportOptionsModal(generatedPlannerData);
             } else {
                 showConfirmationModal('Erro na Geração', 'Não foi possível gerar as tarefas. A IA pode não ter entendido a sua solicitação ou gerou um formato inesperado. Por favor, tente novamente com uma descrição diferente.', 'Ok', 'modal-btn red', () => {});
             }
         } catch (error) {
             console.error("Erro ao chamar a API Groq:", error);
-            generateTasksLoading.classList.add('hidden'); // Oculta o loader
-            confirmGenerateTasksBtn.disabled = false; // Habilita o botão
-            generateTasksPrompt.disabled = false; // Habilita o textarea
-            cancelGenerateTasksBtn.disabled = false; // Habilita o botão de cancelar
+            generateTasksLoading.classList.add('hidden');
+            confirmGenerateTasksBtn.disabled = false;
+            generateTasksPrompt.disabled = false;
+            cancelGenerateTasksBtn.disabled = false;
             showConfirmationModal('Erro na Conexão', `Ocorreu um erro ao se comunicar com a IA: ${error.message}. Verifique sua conexão com a internet ou tente novamente mais tarde.`, 'Ok', 'modal-btn red', () => {});
         }
     };
@@ -1576,5 +1641,17 @@ window.onload = async function() {
             top: 0,
             behavior: 'smooth' // Rolagem suave
         });
+    });
+
+    // Adiciona o event listener para alertar o usuário ao tentar sair da página com o timer ativo
+    window.addEventListener('beforeunload', (event) => {
+        if (appState.isTimerRunning) {
+            // Cancela o evento conforme o padrão.
+            event.preventDefault();
+            // Para navegadores baseados em Chrome, defina returnValue.
+            event.returnValue = '';
+            // A maioria dos navegadores exibirá uma mensagem genérica, mas alguns podem usar esta string.
+            return 'Você tem um timer Pomodoro ativo. Tem certeza que deseja sair?';
+        }
     });
 };
