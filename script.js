@@ -15,27 +15,20 @@ const motivationalQuotes = [
     { quote: "A força não vem da capacidade física. Ela vem de uma vontade indomável.", author: "Mahatma Gandhi" }
 ];
 
-// Configurações do Pomodoro
-const POMODORO_SETTINGS = {
-    STUDY_DURATION: 25 * 60 * 1000, // 25 minutos
-    SHORT_BREAK_DURATION: 5 * 60 * 1000, // 5 minutos
-    LONG_BREAK_DURATION: 15 * 60 * 1000, // 15 minutos
-    SESSIONS_BEFORE_LONG_BREAK: 4
+// Configurações do Cronômetro (não Pomodoro)
+const TIMER_SETTINGS = {
+    // Não há durações fixas para um cronômetro de contagem crescente
 };
 
 // Estado global da aplicação
 let appState = {
     plannerData: [],
     currentDisplayDate: null, // Armazena a data ISO do dia que está sendo exibido
-    timerAccumulatedTime: 0, // Tempo acumulado do timer em milissegundos para o dia atual (não usado diretamente para Pomodoro, mas mantido para compatibilidade)
+    timerAccumulatedTime: 0, // Tempo acumulado do timer em milissegundos para o dia atual
     isTimerRunning: false,
     timerInterval: null,
     timerStartTime: 0, // Timestamp do último início/retomada do timer
     fullPlannerRenderedDays: 0, // Quantidade de dias renderizados no cronograma completo
-    // Novos estados para o Pomodoro
-    pomodoroPhase: 'stopped', // 'study', 'short-break', 'long-break', 'stopped'
-    pomodoroRemainingTime: 0, // Tempo restante na fase atual (em milissegundos)
-    pomodoroSessionCount: 0, // Número de sessões de estudo concluídas no ciclo atual
     activeTab: 'today' // Nova propriedade para controlar a aba ativa
 };
 
@@ -45,7 +38,7 @@ const MIN_DATE = '2025-07-08'; // Data mínima permitida para navegação
 // Chave da API Groq
 const GROQ_API_KEY = "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"; // Chave fornecida pelo usuário
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
-const GROQ_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
+const GROQ_MODEL = "llama-3.3-70b-versatile"; // Modelo atualizado para llama-3.3-70b-versatile
 
 // Função para carregar o estado do planner do localStorage
 function loadAppState() {
@@ -60,10 +53,6 @@ function loadAppState() {
             isTimerRunning: false,
             timerInterval: null,
             timerStartTime: 0,
-            // Inicializa estados do Pomodoro se não existirem no estado salvo
-            pomodoroPhase: parsedState.pomodoroPhase !== undefined ? parsedState.pomodoroPhase : 'stopped',
-            pomodoroRemainingTime: parsedState.pomodoroRemainingTime !== undefined ? parsedState.pomodoroRemainingTime : 0,
-            pomodoroSessionCount: parsedState.pomodoroSessionCount !== undefined ? parsedState.pomodoroSessionCount : 0,
             // Define a aba ativa ao carregar, ou 'today' como padrão
             activeTab: parsedState.activeTab !== undefined ? parsedState.activeTab : 'today',
         };
@@ -128,7 +117,7 @@ function getTaskIcon(type) {
     }
 }
 
-// --- Funções do Timer Pomodoro ---
+// --- Funções do Cronômetro ---
 
 // Função para tocar um som de notificação
 function playNotificationSound() {
@@ -152,58 +141,35 @@ function playNotificationSound() {
     }
 }
 
-// Função para enviar uma notificação do navegador
-function sendNotification(title, body) {
-    if (Notification.permission === 'granted') {
-        new Notification(title, { body: body });
-    } else if (Notification.permission !== 'denied') {
-        Notification.requestPermission().then(permission => {
-            if (permission === 'granted') {
-                new Notification(title, { body: body });
-            }
-        });
-    }
-}
-
-// Atualiza o display do timer e verifica o fim da fase
-function updatePomodoroTimer() {
-    if (appState.pomodoroPhase === 'stopped') {
+// Atualiza o display do cronômetro
+function updateTimer() {
+    if (!appState.isTimerRunning) {
         return;
     }
 
     const now = Date.now();
-    const elapsed = now - appState.timerStartTime;
-    appState.pomodoroRemainingTime = Math.max(0, appState.pomodoroRemainingTime - elapsed);
+    const elapsedSinceLastUpdate = now - appState.timerStartTime;
+    appState.timerAccumulatedTime += elapsedSinceLastUpdate;
     appState.timerStartTime = now; // Reinicia o tempo de início para o próximo intervalo
 
     updateTimerDisplay();
+    saveAppState(); // Salva o tempo acumulado a cada segundo
+}
 
-    if (appState.pomodoroRemainingTime === 0) {
-        clearInterval(appState.timerInterval);
-        playNotificationSound();
-        sendNotification('Pomodoro Concluído!', `Hora de ${appState.pomodoroPhase === 'study' ? 'uma pausa!' : 'voltar a estudar!'}`);
-        nextPomodoroPhase();
+// Inicia o cronômetro
+function startTimer() {
+    if (!appState.isTimerRunning) {
+        appState.isTimerRunning = true;
+        appState.timerStartTime = Date.now();
+        appState.timerInterval = setInterval(updateTimer, 1000);
+        setTimerButtonsState();
+        updateTimerDisplay(); // Atualiza o display imediatamente ao iniciar
+        saveAppState();
     }
 }
 
-// Inicia uma sessão Pomodoro (estudo ou pausa)
-function startPomodoro() {
-    if (appState.pomodoroPhase === 'stopped' || appState.pomodoroRemainingTime === 0) {
-        // Inicia uma nova sessão de estudo se estiver parado ou zerado
-        appState.pomodoroPhase = 'study';
-        appState.pomodoroRemainingTime = POMODORO_SETTINGS.STUDY_DURATION;
-    }
-    appState.isTimerRunning = true;
-    appState.timerStartTime = Date.now();
-    // Atualiza o display imediatamente para mostrar a duração total antes de começar a contagem regressiva
-    updateTimerDisplay();
-    appState.timerInterval = setInterval(updatePomodoroTimer, 1000);
-    setTimerButtonsState();
-    saveAppState();
-}
-
-// Pausa a sessão Pomodoro atual
-function pausePomodoro() {
+// Pausa o cronômetro
+function pauseTimer() {
     if (appState.isTimerRunning) {
         clearInterval(appState.timerInterval);
         appState.isTimerRunning = false;
@@ -212,30 +178,21 @@ function pausePomodoro() {
     }
 }
 
-// Para a sessão Pomodoro atual e reseta
-function stopPomodoro() {
+// Para o cronômetro e zera
+function stopTimer() {
     if (appState.isTimerRunning) {
-        pausePomodoro(); // Pausa o timer antes de parar completamente
+        pauseTimer(); // Pausa o timer antes de parar completamente
     }
 
-    // Acumula o tempo de estudo se a fase atual era de estudo
-    if (appState.pomodoroPhase === 'study') {
-        const todayData = appState.plannerData.find(day => day.date === appState.currentDisplayDate);
-        if (todayData) {
-            const timeStudiedThisSession = POMODORO_SETTINGS.STUDY_DURATION - appState.pomodoroRemainingTime;
-            todayData.studyHours += timeStudiedThisSession / (1000 * 60 * 60);
-            // Increment pomodoroSessionsCompleted for the current day
-            if (todayData.pomodoroSessionsCompleted === undefined) {
-                todayData.pomodoroSessionsCompleted = 0;
-            }
-            todayData.pomodoroSessionsCompleted++;
-            document.getElementById('studyHoursInput').value = todayData.studyHours.toFixed(1);
-        }
+    const todayData = appState.plannerData.find(day => day.date === appState.currentDisplayDate);
+    if (todayData) {
+        // Converte milissegundos para horas e adiciona às horas de estudo do dia
+        todayData.studyHours += appState.timerAccumulatedTime / (1000 * 60 * 60);
+        document.getElementById('studyHoursInput').value = todayData.studyHours.toFixed(1);
     }
 
-    appState.pomodoroPhase = 'stopped';
-    appState.pomodoroRemainingTime = 0;
-    appState.pomodoroSessionCount = 0; // Reseta as sessões no ciclo completo
+    appState.timerAccumulatedTime = 0; // Zera o tempo acumulado
+    appState.isTimerRunning = false;
     clearInterval(appState.timerInterval);
     appState.timerInterval = null;
     appState.timerStartTime = 0;
@@ -244,24 +201,6 @@ function stopPomodoro() {
     saveAppState();
     updateSummary();
     renderFullPlanner(); // Atualiza o planner completo para refletir as horas
-}
-
-// Transiciona para a próxima fase do Pomodoro
-function nextPomodoroPhase() {
-    if (appState.pomodoroPhase === 'study') {
-        appState.pomodoroSessionCount++;
-        if (appState.pomodoroSessionCount % POMODORO_SETTINGS.SESSIONS_BEFORE_LONG_BREAK === 0) {
-            appState.pomodoroPhase = 'long-break';
-            appState.pomodoroRemainingTime = POMODORO_SETTINGS.LONG_BREAK_DURATION;
-        } else {
-            appState.pomodoroPhase = 'short-break';
-            appState.pomodoroRemainingTime = POMODORO_SETTINGS.SHORT_BREAK_DURATION;
-        }
-    } else { // Era uma pausa
-        appState.pomodoroPhase = 'study';
-        appState.pomodoroRemainingTime = POMODORO_SETTINGS.STUDY_DURATION;
-    }
-    startPomodoro(); // Inicia automaticamente a próxima fase
 }
 
 // Formata o tempo em HH:MM:SS
@@ -276,22 +215,10 @@ function formatTime(ms) {
         .join(':');
 }
 
-// Atualiza o display do timer e o texto da fase
+// Atualiza o display do timer
 function updateTimerDisplay() {
     const timerDisplay = document.getElementById('timerDisplay');
-    const pomodoroPhaseText = document.getElementById('pomodoroPhaseText');
-
-    if (appState.pomodoroPhase === 'stopped') {
-        timerDisplay.textContent = '00:00:00';
-        pomodoroPhaseText.textContent = 'Parado';
-    } else {
-        timerDisplay.textContent = formatTime(appState.pomodoroRemainingTime);
-        switch (appState.pomodoroPhase) {
-            case 'study': pomodoroPhaseText.textContent = 'Estudo'; break;
-            case 'short-break': pomodoroPhaseText.textContent = 'Pausa Curta'; break;
-            case 'long-break': pomodoroPhaseText.textContent = 'Pausa Longa'; break;
-        }
-    }
+    timerDisplay.textContent = formatTime(appState.timerAccumulatedTime);
 }
 
 // Define o estado dos botões do timer
@@ -307,11 +234,12 @@ function setTimerButtonsState() {
     } else {
         startBtn.disabled = false;
         pauseBtn.disabled = true;
-        stopBtn.disabled = appState.pomodoroPhase === 'stopped' && appState.pomodoroRemainingTime === 0;
+        // O botão de parar só fica habilitado se houver tempo acumulado
+        stopBtn.disabled = appState.timerAccumulatedTime === 0;
     }
 }
 
-// --- Fim Funções do Timer Pomodoro ---
+// --- Fim Funções do Cronômetro ---
 
 // Função para formatar a data de exibição e o título da seção
 function getTodaySectionTitle(dateString) {
@@ -346,7 +274,7 @@ function renderTodayTasks() {
 
     // Se não houver dados para o dia, cria um objeto básico para ele
     if (!todayData) {
-        todayData = { date: displayDateString, studyHours: 0, tasks: [], dailyNotes: '', pomodoroSessionsCompleted: 0 }; // Added pomodoroSessionsCompleted
+        todayData = { date: displayDateString, studyHours: 0, tasks: [], dailyNotes: '', pomodoroSessionsCompleted: 0 };
         appState.plannerData.push(todayData);
         appState.plannerData.sort((a, b) => new Date(a.date) - new Date(b.date)); // Mantém ordenado
     }
@@ -647,8 +575,10 @@ function calculateAllMetrics() {
     });
 
     const averageDailyStudyHours = daysWithStudyHours > 0 ? (totalStudyHoursAccumulated / daysWithStudyHours) : 0;
+    const overallCompletionRate = totalTasks > 0 ? ((totalCompletedTasks / totalTasks) * 100).toFixed(1) : 0;
 
-    return { totalTasks, totalCompletedTasks, totalStudyHoursAccumulated, averageDailyStudyHours, totalPomodoroSessions };
+
+    return { totalTasks, totalCompletedTasks, totalStudyHoursAccumulated, averageDailyStudyHours, totalPomodoroSessions, overallCompletionRate };
 }
 
 // Função para atualizar o resumo
@@ -684,15 +614,17 @@ function updateSummary() {
     document.getElementById('weeklyStudyHours').textContent = `${weeklyHours.toFixed(1)}h`;
 
     // Atualiza o progresso total e novas métricas
-    const { totalTasks, totalCompletedTasks, totalStudyHoursAccumulated, averageDailyStudyHours, totalPomodoroSessions } = calculateAllMetrics();
-    const totalProgressPercentage = totalTasks > 0 ? ((totalCompletedTasks / totalTasks) * 100).toFixed(1) : 0;
-    document.getElementById('totalProgressDisplay').textContent = `${totalProgressPercentage}% (${totalCompletedTasks}/${totalTasks})`;
-
-    // Adiciona os novos cards de resumo dinamicamente
+    const { totalTasks, totalCompletedTasks, totalStudyHoursAccumulated, averageDailyStudyHours, totalPomodoroSessions, overallCompletionRate } = calculateAllMetrics();
+    
     const summaryGrid = document.querySelector('.summary-grid');
     if (summaryGrid) {
         // Remove os cards dinâmicos existentes para evitar duplicação
         summaryGrid.querySelectorAll('.dynamic-summary-card').forEach(card => card.remove());
+
+        const overallCompletionRateCard = document.createElement('div');
+        overallCompletionRateCard.className = 'summary-card secondary dynamic-summary-card';
+        overallCompletionRateCard.innerHTML = `<h3>Taxa de Conclusão Global</h3><p>${overallCompletionRate}%</p>`;
+        summaryGrid.appendChild(overallCompletionRateCard);
 
         const totalStudyHoursCard = document.createElement('div');
         totalStudyHoursCard.className = 'summary-card blue dynamic-summary-card';
@@ -728,7 +660,7 @@ function displayMotivationalQuote() {
 function navigateDay(offset) {
     // Se o timer estiver rodando, pausa antes de mudar de dia
     if (appState.isTimerRunning) {
-        pausePomodoro();
+        pauseTimer(); // Use pauseTimer para o cronômetro
     }
     const current = new Date(appState.currentDisplayDate + 'T00:00:00');
     current.setDate(current.getDate() + offset);
@@ -1122,14 +1054,14 @@ function handleMergeUpdate(importedData) {
                 newPlannerData[existingDayIndex] = {
                     ...importedDay,
                     dailyNotes: importedDay.dailyNotes || '',
-                    pomodoroSessionsCompleted: importedDay.pomodoroSessionsCompleted || 0 // Ensure this is set
+                    pomodoroSessionsCompleted: importedDay.pomodoroSessionsCompleted || 0
                 };
             } else {
                 // Adiciona o novo dia
                 newPlannerData.push({
                     ...importedDay,
                     dailyNotes: importedDay.dailyNotes || '',
-                    pomodoroSessionsCompleted: importedDay.pomodoroSessionsCompleted || 0 // Ensure this is set
+                    pomodoroSessionsCompleted: importedDay.pomodoroSessionsCompleted || 0
                 });
             }
         });
@@ -1320,15 +1252,17 @@ async function openGenerateTasksModal() {
                 }
             ];
 
-            const response = await fetch(GROQ_API_URL, { // Usando GROQ_API_URL
+            const response = await fetch(GROQ_API_URL, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "Authorization": `Bearer ${GROQ_API_KEY}` // Usando GROQ_API_KEY
+                    "Authorization": `Bearer ${GROQ_API_KEY}`
                 },
                 body: JSON.stringify({
-                    model: GROQ_MODEL, // Usando GROQ_MODEL
+                    model: GROQ_MODEL,
                     messages: messages,
+                    temperature: 0.7, // Adicionado para mais criatividade
+                    max_tokens: 2048, // Ajustado para permitir respostas mais longas
                     response_format: { type: "json_object" }
                 })
             });
@@ -1355,7 +1289,7 @@ async function openGenerateTasksModal() {
                         // Se não for um array no nível superior, e não for um objeto com 'plannerData',
                         // pode ser um array stringificado dentro de um objeto JSON. Tenta fazer o parse novamente.
                         // Isso lida com casos em que o modelo pode retornar `{"content": "[...]"}`
-                        // ou apenas um array stringificado `"[...]"`.
+                        // ou apenas um array stringificado `"[...]"` dentro de um JSON.
                         generatedPlannerData = JSON.parse(generatedPlannerData);
                     }
                 } catch (e) {
@@ -1461,9 +1395,6 @@ window.onload = async function() {
                 clearInterval(appState.timerInterval);
                 appState.timerInterval = null;
                 appState.timerStartTime = 0;
-                appState.pomodoroPhase = 'stopped'; // Reseta Pomodoro
-                appState.pomodoroRemainingTime = 0;
-                appState.pomodoroSessionCount = 0;
                 appState.activeTab = 'today'; // Volta para a aba "Hoje"
                 renderPlanner();
                 // Garante que os botões do menu estejam no estado correto após o reset
@@ -1604,8 +1535,6 @@ window.onload = async function() {
                 todayData.studyHours = isNaN(newHours) ? 0 : newHours;
                 saveAppState();
                 updateSummary();
-                // Não chame renderFullPlanner(false) aqui para evitar loops de renderização desnecessários
-                // A atualização do full planner será feita quando o usuário trocar para a aba "Cronograma Completo"
             }
         });
     }
@@ -1618,10 +1547,10 @@ window.onload = async function() {
         navigateDay(1);
     });
 
-    // Event listeners para os botões do timer (agora Pomodoro)
-    document.getElementById('startTimerBtn').addEventListener('click', startPomodoro);
-    document.getElementById('pauseTimerBtn').addEventListener('click', pausePomodoro);
-    document.getElementById('stopTimerBtn').addEventListener('click', stopPomodoro);
+    // Event listeners para os botões do timer (agora Cronômetro)
+    document.getElementById('startTimerBtn').addEventListener('click', startTimer);
+    document.getElementById('pauseTimerBtn').addEventListener('click', pauseTimer);
+    document.getElementById('stopTimerBtn').addEventListener('click', stopTimer);
 
     // Event listener para o botão de adicionar nova tarefa
     document.getElementById('addNewTaskBtn').addEventListener('click', openAddTaskModal);
@@ -1651,7 +1580,7 @@ window.onload = async function() {
             // Para navegadores baseados em Chrome, defina returnValue.
             event.returnValue = '';
             // A maioria dos navegadores exibirá uma mensagem genérica, mas alguns podem usar esta string.
-            return 'Você tem um timer Pomodoro ativo. Tem certeza que deseja sair?';
+            return 'Você tem um cronômetro ativo. Tem certeza que deseja sair?';
         }
     });
 };

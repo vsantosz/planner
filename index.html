@@ -103,7 +103,6 @@
 
                     <!-- Timer de Estudos -->
                     <div class="study-timer-container">
-                        <div id="pomodoroPhaseText" class="text-lg text-gray-600 mb-2">Parado</div>
                         <div id="timerDisplay" class="timer-display">00:00:00</div>
                         <div class="timer-buttons">
                             <button id="startTimerBtn" class="timer-btn start">Iniciar</button>
@@ -157,18 +156,7 @@
                             <h3>Horas Estudadas na Semana</h3>
                             <p id="weeklyStudyHours">0h</p>
                         </div>
-                        <div class="summary-card primary">
-                            <h3>Total de Horas Estudadas</h3>
-                            <p id="totalOverallStudyHours">0h</p>
-                        </div>
-                        <div class="summary-card secondary">
-                            <h3>Taxa de Conclusão Global</h3>
-                            <p id="overallCompletionRate">0%</p>
-                        </div>
-                        <div class="summary-card primary">
-                            <h3>Progresso Total</h3>
-                            <p id="totalProgressDisplay">0%</p>
-                        </div>
+                        <!-- Novos cards de progresso serão adicionados dinamicamente aqui -->
                     </div>
                 </section>
                 <!-- Citação Motivacional -->
@@ -308,6 +296,10 @@
         .summary-card.secondary p {
             color: var(--secondary-color); /* Usa a cor secundária para este card */
         }
+        /* Novas cores para os cards de resumo dinâmicos */
+        .summary-card.blue p { color: var(--primary-color); }
+        .summary-card.orange p { color: #ed8936; } /* Tailwind orange-500 */
+        .summary-card.purple p { color: #805ad5; } /* Tailwind purple-600 */
     </style>
 
     <!-- Link para o arquivo JavaScript externo -->
