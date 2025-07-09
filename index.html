@@ -49,10 +49,18 @@
                     <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L10 11.586l2.293-2.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"></path><path fill-rule="evenodd" d="M9 2a1 1 0 011 1v7a1 1 0 11-2 0V3a1 1 0 011-1z" clip-rule="evenodd"></path></svg>
                     Exportar Planner (JSON)
                 </button>
+                <button id="copyPlannerBtn" class="menu-link purple">
+                    <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"></path><path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"></path></svg>
+                    Copiar Planner (JSON)
+                </button>
                 <input type="file" id="importFileInput" accept=".json" class="hidden">
                 <button id="importPlannerBtn" class="menu-link blue">
                     <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L6.293 6.707z" clip-rule="evenodd"></path></svg>
                     Importar Planner (JSON)
+                </button>
+                <button id="generateTasksBtn" class="menu-link teal">
+                    <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd"></path></svg>
+                    Gerar Tarefas com IA
                 </button>
             </div>
         </nav>
@@ -224,10 +232,54 @@
         </div>
     </div>
 
+    <!-- Novo Modal de Geração de Tarefas com IA -->
+    <div id="generateTasksModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 id="generateTasksTitle">Gerar Tarefas com IA</h3>
+            <p class="text-gray-700 mb-4">Descreva o tipo de cronograma que você deseja gerar. Por exemplo: "Gerar um cronograma de 30 dias para Direito Constitucional e Administrativo, com 3 tarefas por dia."</p>
+            <textarea id="generateTasksPrompt" class="notes-textarea w-full mb-4" placeholder="Sua descrição aqui..."></textarea>
+            <div class="modal-buttons">
+                <button id="cancelGenerateTasksBtn" class="modal-btn cancel-btn">Cancelar</button>
+                <button id="confirmGenerateTasksBtn" class="modal-btn confirm-btn teal">Gerar</button>
+            </div>
+            <div id="generateTasksLoading" class="hidden mt-4 text-center text-blue-600">
+                <div class="loader"></div>
+                Gerando tarefas... Isso pode levar alguns segundos.
+            </div>
+        </div>
+    </div>
+
     <!-- Botão Voltar ao Topo -->
     <button id="backToTopBtn" title="Voltar ao Topo">
         <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd"></path></svg>
     </button>
+
+    <style>
+        /* Loader para a geração de IA */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Estilo para o novo botão de IA */
+        .menu-link.teal {
+            background-color: #319795; /* Cor teal */
+            color: white;
+        }
+        .menu-link.teal:hover {
+            background-color: #2c7a7b; /* Tom mais escuro do teal */
+        }
+    </style>
 
     <!-- Link para o arquivo JavaScript externo -->
     <script src="script.js"></script>

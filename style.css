@@ -185,6 +185,10 @@ body {
 .menu-link.green:hover { background-color: #38a169; }
 .menu-link.blue { background-color: var(--primary-color); color: white; }
 .menu-link.blue:hover { background-color: #2a4365; }
+.menu-link.purple { background-color: var(--secondary-color); color: white; } /* Novo estilo para copiar */
+.menu-link.purple:hover { background-color: #6b46c1; } /* Tom mais escuro do roxo */
+.menu-link.teal { background-color: #319795; color: white; } /* Novo estilo para IA */
+.menu-link.teal:hover { background-color: #2c7a7b; }
 
 
 /* Abas (Tabbed Interface) */
@@ -639,6 +643,13 @@ body {
 }
 .modal-btn.confirm-btn.green:hover {
     background-color: #38a169;
+}
+.modal-btn.confirm-btn.teal {
+    background-color: #319795;
+    color: white;
+}
+.modal-btn.confirm-btn.teal:hover {
+    background-color: #2c7a7b;
 }
 
 /* Estilo para botões de ícone (navegação de dia) */

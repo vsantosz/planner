@@ -958,8 +958,18 @@ function findEmptyDays() {
     const emptyDays = appState.plannerData.filter(day => day.tasks.length === 0);
     if (emptyDays.length > 0) {
         const emptyDates = emptyDays.map(day => new Date(day.date + 'T00:00:00').toLocaleDateString('pt-BR')).join(', ');
+        // Você pode escolher como alertar o usuário aqui. Por enquanto, um console.warn.
         console.warn(`Dias sem tarefas: ${emptyDates}`);
-        // Futura melhoria: exibir um alerta visual na UI, talvez no resumo ou no próprio dia no cronograma completo.
+        // Exemplo de como você poderia mostrar um alerta na UI (descomente se desejar):
+        /*
+        showConfirmationModal(
+            'Dias Vazios Detectados',
+            `Os seguintes dias não possuem tarefas agendadas: ${emptyDates}. Considere adicioná-las para um planejamento completo.`,
+            'Ok',
+            'modal-btn blue',
+            () => {}
+        );
+        */
     }
 }
 
@@ -1017,7 +1027,7 @@ function handleMergeUpdate(importedData) {
     if (daysToOverwrite.length > 0) {
         showConfirmationModal(
             'Confirmar Mesclagem',
-            `O arquivo importado contém ${daysToOverwrite.length} dia(s) que já existem no seu planner. Deseja substituí-los?`,
+            `O arquivo importado contém dados para os seguintes dias que já existem no seu planner: ${daysToOverwrite.map(d => new Date(d + 'T00:00:00').toLocaleDateString('pt-BR')).join(', ')}. Deseja substituí-los?`,
             'Sim, Substituir',
             'confirm-btn red',
             performMerge,
@@ -1055,19 +1065,144 @@ function openImportOptionsModal(importedData) {
     importOptionsModal.classList.add('show');
 }
 
+// Função para copiar o planner para a área de transferência
+function copyPlannerToClipboard() {
+    const dataToCopy = JSON.stringify(appState, null, 2);
+    const textarea = document.createElement('textarea');
+    textarea.value = dataToCopy;
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+        document.execCommand('copy');
+        showConfirmationModal('Copiado!', 'O conteúdo do planner foi copiado para a área de transferência.', 'Ok', 'confirm-btn green', () => {});
+    } catch (err) {
+        console.error('Falha ao copiar:', err);
+        showConfirmationModal('Erro ao Copiar', 'Não foi possível copiar o conteúdo. Por favor, tente novamente.', 'Ok', 'confirm-btn red', () => {});
+    }
+    document.body.removeChild(textarea);
+}
+
+// Função para abrir o modal de geração de tarefas com IA
+function openGenerateTasksModal() {
+    const generateTasksModal = document.getElementById('generateTasksModal');
+    const generateTasksPrompt = document.getElementById('generateTasksPrompt');
+    const confirmGenerateTasksBtn = document.getElementById('confirmGenerateTasksBtn');
+    const cancelGenerateTasksBtn = document.getElementById('cancelGenerateTasksBtn');
+    const generateTasksLoading = document.getElementById('generateTasksLoading');
+
+    generateTasksPrompt.value = ''; // Limpa o campo
+    generateTasksLoading.classList.add('hidden'); // Oculta o loader
+    confirmGenerateTasksBtn.disabled = false; // Habilita o botão
+
+    generateTasksModal.classList.add('show');
+
+    confirmGenerateTasksBtn.onclick = async () => {
+        const promptText = generateTasksPrompt.value.trim();
+        if (!promptText) {
+            showConfirmationModal('Atenção', 'Por favor, descreva o cronograma que deseja gerar.', 'Ok', 'modal-btn blue', () => {});
+            return;
+        }
+
+        generateTasksLoading.classList.remove('hidden'); // Mostra o loader
+        confirmGenerateTasksBtn.disabled = true; // Desabilita o botão
+
+        try {
+            const chatHistory = [];
+            const today = new Date().toISOString().split('T')[0];
+            chatHistory.push({ role: "user", parts: [{ text: `Gere um cronograma de estudos para um planner, cobrindo com base na seguinte descrição: "${promptText}". As tarefas devem começar a partir de hoje (${today}). Inclua tarefas diárias com descrição, tipo (study, questions, discursive, simulado, revision, rest), e uma dica/bizú relevante para concursos públicos. Gere no formato JSON estritamente seguindo o schema fornecido. Certifique-se de que cada dia tenha uma propriedade 'date' no formato 'YYYY-MM-DD', 'studyHours' como número, 'tasks' como array de objetos, e 'dailyNotes' como string vazia. Para cada tarefa em 'tasks', inclua 'id' (string única), 'description' (string), 'completed' (boolean, sempre false inicialmente), 'type' (string de um dos tipos listados), 'notes' (string vazia), e 'tips' (string).` }] });
+
+            const payload = {
+                contents: chatHistory,
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "ARRAY",
+                        items: {
+                            type: "OBJECT",
+                            properties: {
+                                "date": { "type": "STRING", "format": "date" },
+                                "studyHours": { "type": "NUMBER" },
+                                "tasks": {
+                                    "type": "ARRAY",
+                                    "items": {
+                                        "type": "OBJECT",
+                                        "properties": {
+                                            "id": { "type": "STRING" },
+                                            "description": { "type": "STRING" },
+                                            "completed": { "type": "BOOLEAN" },
+                                            "type": { "type": "STRING", "enum": ["study", "questions", "discursive", "simulado", "revision", "rest"] },
+                                            "notes": { "type": "STRING" },
+                                            "tips": { "type": "STRING" }
+                                        },
+                                        "required": ["id", "description", "completed", "type", "notes", "tips"]
+                                    }
+                                },
+                                "dailyNotes": { "type": "STRING" }
+                            },
+                            "required": ["date", "studyHours", "tasks", "dailyNotes"]
+                        }
+                    }
+                }
+            };
+
+            const apiKey = ""; // Canvas will automatically provide the API key
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+            generateTasksLoading.classList.add('hidden'); // Oculta o loader
+            confirmGenerateTasksBtn.disabled = false; // Habilita o botão
+
+            if (result.candidates && result.candidates.length > 0 &&
+                result.candidates[0].content && result.candidates[0].content.parts &&
+                result.candidates[0].content.parts.length > 0) {
+                const jsonString = result.candidates[0].content.parts[0].text;
+                const generatedPlannerData = JSON.parse(jsonString);
+
+                // Adiciona IDs únicos às tarefas geradas, se o LLM não as tiver fornecido
+                generatedPlannerData.forEach(day => {
+                    day.tasks.forEach(task => {
+                        if (!task.id) {
+                            task.id = generateUniqueId();
+                        }
+                        // Garante que 'notes' e 'tips' sejam strings, mesmo que vazias
+                        task.notes = task.notes || '';
+                        task.tips = task.tips || '';
+                        // Garante que 'completed' seja boolean
+                        task.completed = !!task.completed;
+                    });
+                    // Garante que 'dailyNotes' exista
+                    day.dailyNotes = day.dailyNotes || '';
+                });
+
+                generateTasksModal.classList.remove('show');
+                openImportOptionsModal(generatedPlannerData); // Oferece opções de importação/mesclagem
+            } else {
+                showConfirmationModal('Erro na Geração', 'Não foi possível gerar as tarefas. Por favor, tente novamente com uma descrição diferente.', 'Ok', 'modal-btn red', () => {});
+            }
+        } catch (error) {
+            console.error("Erro ao chamar a API Gemini:", error);
+            generateTasksLoading.classList.add('hidden'); // Oculta o loader
+            confirmGenerateTasksBtn.disabled = false; // Habilita o botão
+            showConfirmationModal('Erro na Conexão', 'Ocorreu um erro ao se comunicar com a IA. Verifique sua conexão ou tente mais tarde.', 'Ok', 'modal-btn red', () => {});
+        }
+    };
+
+    cancelGenerateTasksBtn.onclick = () => {
+        generateTasksModal.classList.remove('show');
+    };
+}
+
 
 // Função principal para renderizar todo o planner
 function renderPlanner() {
-    // Estas funções devem ser chamadas independentemente da aba ativa,
-    // pois seus dados podem ser exibidos em múltiplas abas ou são globais.
-    // Apenas chame as funções de renderização específicas da aba ativa dentro de switchTab
-    // para evitar renderizações desnecessárias e possíveis loops.
-    // No entanto, updateSummary e displayMotivationalQuote são sempre úteis.
     updateSummary();
     displayMotivationalQuote();
-
-    // Apenas ativa a aba correta. O conteúdo da aba será renderizado por `switchTab`
-    // ao ser ativada.
     switchTab(appState.activeTab);
 }
 
@@ -1153,12 +1288,21 @@ window.onload = async function() {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        showConfirmationModal('Exportado!', 'Seu planner foi exportado com sucesso como JSON.', 'Ok', 'confirm-btn green', () => {});
+        showConfirmationModal('Exportado!', 'Seu planner foi exportado com sucesso como JSON. Você pode salvá-lo em um serviço de nuvem como Google Drive ou Dropbox para acessá-lo em outros dispositivos.', 'Ok', 'confirm-btn green', () => {});
         // Garante que os botões do menu estejam no estado correto após a exportação
         sideMenu.classList.remove('open');
         menuToggleBtn.style.display = 'flex';
         closeMenuBtn.style.display = 'none';
     });
+
+    // Event listener para o botão de copiar planner
+    document.getElementById('copyPlannerBtn').addEventListener('click', () => {
+        copyPlannerToClipboard();
+        sideMenu.classList.remove('open'); // Fecha o menu após a ação
+        menuToggleBtn.style.display = 'flex';
+        closeMenuBtn.style.display = 'none';
+    });
+
 
     // Event listener para o botão de importar
     const importFileInput = document.getElementById('importFileInput');
@@ -1194,7 +1338,7 @@ window.onload = async function() {
                     return;
                 }
 
-                openImportOptionsModal(dataToProcess); // Abre o modal de opções de importação
+                openImportOptionsModal(dataToProcess); // Oferece opções de importação/mesclagem
                 
                 // Garante que os botões do menu estejam no estado correto após a importação
                 sideMenu.classList.remove('open');
@@ -1210,6 +1354,15 @@ window.onload = async function() {
         // Limpa o input file para permitir a importação do mesmo arquivo novamente
         event.target.value = '';
     });
+
+    // Event listener para o botão de gerar tarefas com IA
+    document.getElementById('generateTasksBtn').addEventListener('click', () => {
+        openGenerateTasksModal();
+        sideMenu.classList.remove('open'); // Fecha o menu após a ação
+        menuToggleBtn.style.display = 'flex';
+        closeMenuBtn.style.display = 'none';
+    });
+
 
     // Event listener para o input de horas de estudo (manual)
     const studyHoursInput = document.getElementById('studyHoursInput');
