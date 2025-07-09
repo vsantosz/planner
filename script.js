@@ -1070,16 +1070,24 @@ function copyPlannerToClipboard() {
     const dataToCopy = JSON.stringify(appState, null, 2);
     const textarea = document.createElement('textarea');
     textarea.value = dataToCopy;
+    // Para que o textarea não apareça na tela, mas ainda seja selecionável
+    textarea.style.position = 'absolute';
+    textarea.style.left = '-9999px';
     document.body.appendChild(textarea);
     textarea.select();
     try {
-        document.execCommand('copy');
-        showConfirmationModal('Copiado!', 'O conteúdo do planner foi copiado para a área de transferência.', 'Ok', 'confirm-btn green', () => {});
+        const successful = document.execCommand('copy');
+        if (successful) {
+            showConfirmationModal('Copiado!', 'O conteúdo do planner foi copiado para a área de transferência.', 'Ok', 'confirm-btn green', () => {});
+        } else {
+            throw new Error('Falha ao copiar comando.');
+        }
     } catch (err) {
         console.error('Falha ao copiar:', err);
-        showConfirmationModal('Erro ao Copiar', 'Não foi possível copiar o conteúdo. Por favor, tente novamente.', 'Ok', 'confirm-btn red', () => {});
+        showConfirmationModal('Erro ao Copiar', 'Não foi possível copiar o conteúdo. Seu navegador pode não suportar esta função diretamente ou pode haver restrições de segurança.', 'Ok', 'confirm-btn red', () => {});
+    } finally {
+        document.body.removeChild(textarea);
     }
-    document.body.removeChild(textarea);
 }
 
 // Função para abrir o modal de geração de tarefas com IA
@@ -1105,6 +1113,8 @@ function openGenerateTasksModal() {
 
         generateTasksLoading.classList.remove('hidden'); // Mostra o loader
         confirmGenerateTasksBtn.disabled = true; // Desabilita o botão
+        generateTasksPrompt.disabled = true; // Desabilita o textarea
+        cancelGenerateTasksBtn.disabled = true; // Desabilita o botão de cancelar
 
         try {
             const chatHistory = [];
@@ -1155,8 +1165,11 @@ function openGenerateTasksModal() {
             });
 
             const result = await response.json();
+            
             generateTasksLoading.classList.add('hidden'); // Oculta o loader
             confirmGenerateTasksBtn.disabled = false; // Habilita o botão
+            generateTasksPrompt.disabled = false; // Habilita o textarea
+            cancelGenerateTasksBtn.disabled = false; // Habilita o botão de cancelar
 
             if (result.candidates && result.candidates.length > 0 &&
                 result.candidates[0].content && result.candidates[0].content.parts &&
@@ -1183,13 +1196,15 @@ function openGenerateTasksModal() {
                 generateTasksModal.classList.remove('show');
                 openImportOptionsModal(generatedPlannerData); // Oferece opções de importação/mesclagem
             } else {
-                showConfirmationModal('Erro na Geração', 'Não foi possível gerar as tarefas. Por favor, tente novamente com uma descrição diferente.', 'Ok', 'modal-btn red', () => {});
+                showConfirmationModal('Erro na Geração', 'Não foi possível gerar as tarefas. A IA pode não ter entendido a sua solicitação ou gerou um formato inesperado. Por favor, tente novamente com uma descrição diferente.', 'Ok', 'modal-btn red', () => {});
             }
         } catch (error) {
             console.error("Erro ao chamar a API Gemini:", error);
             generateTasksLoading.classList.add('hidden'); // Oculta o loader
             confirmGenerateTasksBtn.disabled = false; // Habilita o botão
-            showConfirmationModal('Erro na Conexão', 'Ocorreu um erro ao se comunicar com a IA. Verifique sua conexão ou tente mais tarde.', 'Ok', 'modal-btn red', () => {});
+            generateTasksPrompt.disabled = false; // Habilita o textarea
+            cancelGenerateTasksBtn.disabled = false; // Habilita o botão de cancelar
+            showConfirmationModal('Erro na Conexão', 'Ocorreu um erro ao se comunicar com a IA. Verifique sua conexão com a internet ou tente novamente mais tarde.', 'Ok', 'modal-btn red', () => {});
         }
     };
 
