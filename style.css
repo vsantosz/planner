@@ -61,7 +61,7 @@ body {
 }
 
 /* Botão de abrir/fechar menu */
-.menu-toggle-button {
+.menu-toggle-button, .close-menu-button {
     position: fixed; /* Mantido como fixed para estar sempre visível */
     top: 1.5rem;
     right: 1.5rem;
@@ -76,43 +76,40 @@ body {
     border: none;
     cursor: pointer;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s ease;
+    transition: all 0.3s ease-in-out, opacity 0.3s ease-in-out, visibility 0.3s ease-in-out; /* Transições mais fluidas */
     z-index: 1001; /* Acima de outros elementos */
+    opacity: 0; /* Oculto por padrão para animação */
+    visibility: hidden; /* Oculto por padrão para animação */
 }
-.menu-toggle-button:hover {
+.menu-toggle-button.show {
+    opacity: 1;
+    visibility: visible;
+}
+.menu-toggle-button:hover, .close-menu-button:hover {
     background-color: #2a4365; /* Tom mais escuro do primário */
     transform: scale(1.05);
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
 }
-.menu-toggle-button svg {
+.menu-toggle-button svg, .close-menu-button svg {
     width: 24px;
     height: 24px;
 }
 
 .close-menu-button {
+    background-color: transparent; /* Transparente para o botão de fechar */
+    color: var(--text-dark); /* Cor do ícone para o botão de fechar */
+    box-shadow: none;
     position: absolute; /* Posicionado absolutamente dentro do side-menu */
     right: 1rem;
     top: 1rem;
-    background-color: transparent;
-    color: var(--text-dark);
-    box-shadow: none;
-    width: 48px; /* Mantém o tamanho para consistência */
-    height: 48px;
-    border-radius: 9999px;
-    display: none; /* Oculto por padrão, será mostrado via JS */
-    align-items: center;
-    justify-content: center;
-    border: none;
-    cursor: pointer;
-    transition: all 0.3s ease;
+    z-index: 1002; /* Acima do side-menu */
+}
+.close-menu-button.show {
+    opacity: 1;
+    visibility: visible;
 }
 .close-menu-button:hover {
-    background-color: #e2e8f0;
-    transform: scale(1.05);
-}
-.close-menu-button svg {
-    width: 24px;
-    height: 24px;
+    background-color: #e2e8f0; /* Fundo cinza claro no hover */
 }
 
 
@@ -125,7 +122,7 @@ body {
     height: 100%;
     background-color: var(--background-white);
     box-shadow: -5px 0 15px rgba(0, 0, 0, 0.15);
-    transition: right 0.3s ease-in-out;
+    transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* Curva de animação mais fluida */
     z-index: 1000;
     padding: 2rem 1.5rem;
     display: flex;
@@ -860,7 +857,7 @@ body {
         font-size: 3.5rem;
     }
     /* Ajusta o botão de menu para telas maiores */
-    .menu-toggle-button {
+    .menu-toggle-button, .close-menu-button {
         top: 2rem;
         right: 2.5rem;
     }
@@ -869,7 +866,7 @@ body {
     .container {
         padding: 3rem;
     }
-    .menu-toggle-button {
+    .menu-toggle-button, .close-menu-button {
         top: 2.5rem;
         right: 3rem;
     }

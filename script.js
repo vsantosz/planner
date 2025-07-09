@@ -1090,6 +1090,59 @@ function copyPlannerToClipboard() {
     }
 }
 
+// Função para abrir o modal de colar JSON
+function openPasteJsonModal() {
+    const pasteJsonModal = document.getElementById('pasteJsonModal');
+    const pasteJsonContent = document.getElementById('pasteJsonContent');
+    const confirmPasteJsonBtn = document.getElementById('confirmPasteJsonBtn');
+    const cancelPasteJsonBtn = document.getElementById('cancelPasteJsonBtn');
+
+    pasteJsonContent.value = ''; // Limpa o campo
+    pasteJsonContent.disabled = false; // Habilita o textarea
+    confirmPasteJsonBtn.disabled = false; // Habilita o botão
+    cancelPasteJsonBtn.disabled = false; // Habilita o botão de cancelar
+
+    pasteJsonModal.classList.add('show');
+
+    confirmPasteJsonBtn.onclick = () => {
+        const jsonText = pasteJsonContent.value.trim();
+        if (!jsonText) {
+            showConfirmationModal('Atenção', 'Por favor, cole o conteúdo JSON no campo de texto.', 'Ok', 'modal-btn blue', () => {});
+            return;
+        }
+
+        try {
+            const parsedData = JSON.parse(jsonText);
+            let dataToProcess = [];
+
+            if (parsedData.plannerData && Array.isArray(parsedData.plannerData)) {
+                dataToProcess = parsedData.plannerData;
+            } else if (Array.isArray(parsedData)) {
+                dataToProcess = parsedData;
+            } else {
+                showConfirmationModal('Erro de Formato', 'O JSON colado não parece ser um formato de planner válido. Por favor, verifique se é um array de dias ou um objeto com a chave "plannerData".', 'Ok', 'modal-btn red', () => {});
+                return;
+            }
+
+            if (!dataToProcess.every(day => day.date && Array.isArray(day.tasks))) {
+                showConfirmationModal('Erro de Validação', 'O JSON colado não parece ser um formato de planner válido. Certifique-se de que cada item tem "date" e "tasks".', 'Ok', 'modal-btn red', () => {});
+                return;
+            }
+
+            pasteJsonModal.classList.remove('show');
+            openImportOptionsModal(dataToProcess); // Oferece opções de importação/mesclagem
+        } catch (error) {
+            console.error("Erro ao colar e importar JSON:", error);
+            showConfirmationModal('Erro de Parsing', 'Não foi possível ler o JSON colado. Certifique-se de que é um JSON válido.', 'Ok', 'modal-btn red', () => {});
+        }
+    };
+
+    cancelPasteJsonBtn.onclick = () => {
+        pasteJsonModal.classList.remove('show');
+    };
+}
+
+
 // Função para abrir o modal de geração de tarefas com IA
 function openGenerateTasksModal() {
     const generateTasksModal = document.getElementById('generateTasksModal');
@@ -1101,6 +1154,8 @@ function openGenerateTasksModal() {
     generateTasksPrompt.value = ''; // Limpa o campo
     generateTasksLoading.classList.add('hidden'); // Oculta o loader
     confirmGenerateTasksBtn.disabled = false; // Habilita o botão
+    generateTasksPrompt.disabled = false; // Habilita o textarea
+    cancelGenerateTasksBtn.disabled = false; // Habilita o botão de cancelar
 
     generateTasksModal.classList.add('show');
 
@@ -1231,20 +1286,22 @@ window.onload = async function() {
     const sideMenu = document.getElementById('sideMenu');
 
     // Garante que o botão de fechar esteja oculto no carregamento inicial
-    closeMenuBtn.style.display = 'none';
+    // E que o botão de abrir esteja visível
+    menuToggleBtn.classList.add('show');
+    closeMenuBtn.classList.remove('show');
 
     // Event listener para o botão de abrir menu
     menuToggleBtn.addEventListener('click', () => {
         sideMenu.classList.add('open');
-        menuToggleBtn.style.display = 'none'; // Oculta o botão de abrir
-        closeMenuBtn.style.display = 'flex'; // Mostra o botão de fechar
+        menuToggleBtn.classList.remove('show'); // Oculta o botão de abrir
+        closeMenuBtn.classList.add('show'); // Mostra o botão de fechar
     });
 
     // Event listener para o botão de fechar menu
     closeMenuBtn.addEventListener('click', () => {
         sideMenu.classList.remove('open');
-        menuToggleBtn.style.display = 'flex'; // Mostra o botão de abrir
-        closeMenuBtn.style.display = 'none'; // Oculta o botão de fechar
+        closeMenuBtn.classList.remove('show'); // Oculta o botão de fechar
+        menuToggleBtn.classList.add('show'); // Mostra o botão de abrir
     });
 
     // Event listeners para os botões de aba
@@ -1277,8 +1334,8 @@ window.onload = async function() {
                 renderPlanner();
                 // Garante que os botões do menu estejam no estado correto após o reset
                 sideMenu.classList.remove('open');
-                menuToggleBtn.style.display = 'flex';
-                closeMenuBtn.style.display = 'none';
+                closeMenuBtn.classList.remove('show');
+                menuToggleBtn.classList.add('show');
             }
         );
     });
@@ -1306,22 +1363,22 @@ window.onload = async function() {
         showConfirmationModal('Exportado!', 'Seu planner foi exportado com sucesso como JSON. Você pode salvá-lo em um serviço de nuvem como Google Drive ou Dropbox para acessá-lo em outros dispositivos.', 'Ok', 'confirm-btn green', () => {});
         // Garante que os botões do menu estejam no estado correto após a exportação
         sideMenu.classList.remove('open');
-        menuToggleBtn.style.display = 'flex';
-        closeMenuBtn.style.display = 'none';
+        closeMenuBtn.classList.remove('show');
+        menuToggleBtn.classList.add('show');
     });
 
     // Event listener para o botão de copiar planner
     document.getElementById('copyPlannerBtn').addEventListener('click', () => {
         copyPlannerToClipboard();
         sideMenu.classList.remove('open'); // Fecha o menu após a ação
-        menuToggleBtn.style.display = 'flex';
-        closeMenuBtn.style.display = 'none';
+        closeMenuBtn.classList.remove('show');
+        menuToggleBtn.classList.add('show');
     });
 
 
-    // Event listener para o botão de importar
+    // Event listener para o botão de importar do arquivo
     const importFileInput = document.getElementById('importFileInput');
-    document.getElementById('importPlannerBtn').addEventListener('click', () => {
+    document.getElementById('importPlannerFileBtn').addEventListener('click', () => {
         importFileInput.click(); // Abre o seletor de arquivos
     });
 
@@ -1357,8 +1414,8 @@ window.onload = async function() {
                 
                 // Garante que os botões do menu estejam no estado correto após a importação
                 sideMenu.classList.remove('open');
-                menuToggleBtn.style.display = 'flex';
-                closeMenuBtn.style.display = 'none';
+                closeMenuBtn.classList.remove('show');
+                menuToggleBtn.classList.add('show');
 
             } catch (error) {
                 console.error("Erro ao importar planner:", error);
@@ -1370,12 +1427,20 @@ window.onload = async function() {
         event.target.value = '';
     });
 
+    // Event listener para o botão de colar planner
+    document.getElementById('importPlannerPasteBtn').addEventListener('click', () => {
+        openPasteJsonModal();
+        sideMenu.classList.remove('open'); // Fecha o menu após a ação
+        closeMenuBtn.classList.remove('show');
+        menuToggleBtn.classList.add('show');
+    });
+
     // Event listener para o botão de gerar tarefas com IA
     document.getElementById('generateTasksBtn').addEventListener('click', () => {
         openGenerateTasksModal();
         sideMenu.classList.remove('open'); // Fecha o menu após a ação
-        menuToggleBtn.style.display = 'flex';
-        closeMenuBtn.style.display = 'none';
+        closeMenuBtn.classList.remove('show');
+        menuToggleBtn.classList.add('show');
     });
 
 
