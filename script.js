@@ -1030,6 +1030,8 @@ function openAddTaskModal() {
             accuracyInputs.classList.remove('hidden');
         } else {
             accuracyInputs.classList.add('hidden');
+            newCorrectAnswers.value = 0; // Zera os valores se os campos forem ocultados
+            newWrongAnswers.value = 0;   // Zera os valores se os campos forem ocultados
         }
     };
 
@@ -1108,8 +1110,8 @@ function openEditTaskModal(taskId, currentDate, focusPerformance = false) {
     newCorrectAnswers.value = task.correctAnswers || 0;
     newWrongAnswers.value = task.wrongAnswers || 0;
 
-    // Mostra/oculta campos de acerto/erro com base no tipo da tarefa e se está focando em performance
-    if (task.type === 'questions' || task.type === 'simulado' || focusPerformance) {
+    // Mostra/oculta campos de acerto/erro com base no tipo da tarefa
+    if (task.type === 'questions' || task.type === 'simulado') {
         accuracyInputs.classList.remove('hidden');
     } else {
         accuracyInputs.classList.add('hidden');
@@ -1121,6 +1123,8 @@ function openEditTaskModal(taskId, currentDate, focusPerformance = false) {
             accuracyInputs.classList.remove('hidden');
         } else {
             accuracyInputs.classList.add('hidden');
+            newCorrectAnswers.value = 0; // Zera os valores se os campos forem ocultados
+            newWrongAnswers.value = 0;   // Zera os valores se os campos forem ocultados
         }
     };
 
@@ -1658,9 +1662,12 @@ window.onload = async function() {
         sideMenuOverlay.classList.remove('show'); // Oculta o overlay
     });
 
-    sideMenuOverlay.addEventListener('click', () => {
-        sideMenu.classList.remove('open');
-        sideMenuOverlay.classList.remove('show');
+    sideMenuOverlay.addEventListener('click', (event) => {
+        // Fecha o menu apenas se o clique for no overlay, não no menu em si
+        if (event.target === sideMenuOverlay) {
+            sideMenu.classList.remove('open');
+            sideMenuOverlay.classList.remove('show');
+        }
     });
 
     // Event listeners para os botões de aba

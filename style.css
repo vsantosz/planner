@@ -323,8 +323,9 @@ body {
     padding: 1.1rem 1.6rem; /* Aumenta o padding */
     margin-bottom: 0.85rem;
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
+    flex-wrap: wrap; /* Permite que os itens quebrem a linha */
+    justify-content: space-between; /* Distribui espaço entre os itens */
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08); /* Sombra mais pronunciada */
     transition: transform 0.2s ease-in-out, background-color 0.3s ease, box-shadow 0.3s ease;
 }
@@ -341,7 +342,8 @@ body {
     transform: scale(1.1); /* Aumenta o checkbox */
 }
 .today-task-item label {
-    flex-grow: 1;
+    flex-grow: 1; /* Permite que a label cresça para ocupar o espaço */
+    min-width: 0; /* Permite que a label encolha se necessário */
     font-size: 1.15rem; /* Aumenta o tamanho da fonte */
     color: var(--text-light);
     cursor: pointer;
@@ -369,6 +371,15 @@ body {
 .status-pending { background-color: #fff3cd; color: #856404; }
 .status-delayed { background-color: #f8d7da; color: #721c24; }
 
+/* Contêiner dos botões de ação */
+.task-action-buttons {
+    display: flex;
+    gap: 0.5rem; /* Espaçamento entre os botões */
+    flex-shrink: 0; /* Impede que os botões encolham */
+    margin-left: auto; /* Empurra os botões para a direita */
+    padding-top: 0.5rem; /* Adiciona um pouco de padding no topo para quando quebrar a linha */
+}
+
 /* Botões de Ação (Dicas, Anotações, Editar, Excluir) */
 .action-btn {
     background: none;
@@ -380,7 +391,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-left: 0.6rem;
+    /* Removido margin-left para usar o gap do flexbox pai */
 }
 .action-btn:hover {
     background-color: #e2e8f0; /* Cinza mais escuro no hover */
@@ -497,8 +508,9 @@ body {
     padding: 0.9rem 1.4rem;
     margin-bottom: 0.7rem;
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
+    flex-wrap: wrap; /* Permite que os itens quebrem a linha */
+    justify-content: space-between; /* Distribui espaço entre os itens */
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
     transition: background-color 0.2s ease, transform 0.2s ease;
 }
@@ -514,7 +526,8 @@ body {
     cursor: pointer;
 }
 .day-task-item label {
-    flex-grow: 1;
+    flex-grow: 1; /* Permite que a label cresça para ocupar o espaço */
+    min-width: 0; /* Permite que a label encolha se necessário */
     font-size: 1.05rem;
     color: var(--text-light);
     cursor: pointer;
@@ -957,9 +970,12 @@ body {
         height: 1.1rem;
         margin-right: 0.5rem;
     }
+    .task-action-buttons {
+        padding-top: 0.5rem; /* Keep padding-top for wrapping on small screens */
+    }
     .action-btn {
         padding: 0.4rem;
-        margin-left: 0.4rem;
+        /* margin-left: 0.4rem; */ /* Removed to rely on gap */
     }
     .action-btn svg {
         width: 18px;
@@ -1067,39 +1083,8 @@ body {
     }
 }
 
-@media (min-width: 640px) { /* sm */
-    .container {
-        padding: 2rem;
-    }
-    .header h1 {
-        font-size: 3rem;
-    }
-    .summary-grid, .performance-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
 @media (min-width: 768px) { /* md */
-    .container {
-        padding: 2.5rem;
-    }
-    .summary-grid, .performance-grid {
-        grid-template-columns: repeat(3, 1fr);
-    }
-    .header h1 {
-        font-size: 3.5rem;
-    }
-    /* Ajusta o botão de menu para telas maiores */
-    .menu-toggle-button, .close-menu-button {
-        top: 2rem;
-        right: 2.5rem;
-    }
-}
-@media (min-width: 1024px) { /* lg */
-    .container {
-        padding: 3rem;
-    }
-    .menu-toggle-button, .close-menu-button {
-        top: 2.5rem;
-        right: 3rem;
+    .task-action-buttons {
+        padding-top: 0; /* Remove padding-top on larger screens */
     }
 }
