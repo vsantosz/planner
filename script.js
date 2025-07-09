@@ -24,7 +24,8 @@ let appState = {
     timerInterval: null,
     timerStartTime: 0, // Timestamp do último início/retomada do timer
     fullPlannerRenderedDays: 0, // Quantidade de dias renderizados no cronograma completo
-    activeTab: 'today' // Nova propriedade para controlar a aba ativa
+    activeTab: 'today', // Nova propriedade para controlar a aba ativa
+    todayStudySessions: 0 // Nova métrica: sessões de estudo concluídas hoje
 };
 
 const DAYS_PER_LOAD = 30; // Quantidade de dias para carregar por vez no cronograma completo
@@ -34,6 +35,9 @@ const MIN_DATE = '2025-07-08'; // Data mínima permitida para navegação
 const GROQ_API_KEY = "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"; // Chave fornecida pelo usuário
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 const GROQ_MODEL = "llama-3.3-70b-versatile"; // Modelo atualizado para llama-3.3-70b-versatile
+
+// Variável global para o gráfico
+let accuracyChartInstance = null;
 
 // Função para carregar o estado do planner do localStorage
 function loadAppState() {
@@ -50,15 +54,18 @@ function loadAppState() {
             timerStartTime: 0,
             // Define a aba ativa ao carregar, ou 'today' como padrão
             activeTab: parsedState.activeTab !== undefined ? parsedState.activeTab : 'today',
+            // Inicializa todayStudySessions se não existir
+            todayStudySessions: parsedState.todayStudySessions !== undefined ? parsedState.todayStudySessions : 0,
         };
     } else {
         // Se não houver estado salvo, inicializa com dados vazios
         appState.plannerData = [];
         appState.currentDisplayDate = new Date().toISOString().split('T')[0]; // Define a data atual como padrão
         appState.activeTab = 'today'; // Define a aba inicial
+        appState.todayStudySessions = 0; // Inicializa a nova métrica
     }
 
-    // Garante que todos os dias no plannerData tenham a propriedade dailyNotes
+    // Garante que todos os dias no plannerData tenham as propriedades necessárias
     appState.plannerData.forEach(day => {
         if (day.dailyNotes === undefined) {
             day.dailyNotes = '';
@@ -67,7 +74,18 @@ function loadAppState() {
         if (day.pomodoroSessionsCompleted !== undefined) {
             delete day.pomodoroSessionsCompleted;
         }
+        // Garante que as propriedades de acerto/erro existam nas tarefas
+        day.tasks.forEach(task => {
+            if (task.correctAnswers === undefined) task.correctAnswers = 0;
+            if (task.wrongAnswers === undefined) task.wrongAnswers = 0;
+        });
     });
+
+    // Se a data atual não for a mesma do último carregamento, zera as sessões de estudo do dia
+    const today = new Date().toISOString().split('T')[0];
+    if (appState.currentDisplayDate !== today) {
+        appState.todayStudySessions = 0;
+    }
 }
 
 // Função para salvar o estado do planner no localStorage
@@ -187,6 +205,9 @@ function stopTimer() {
         document.getElementById('studyHoursInput').value = todayData.studyHours.toFixed(1);
     }
 
+    // Incrementa a contagem de sessões de estudo concluídas para o dia atual
+    appState.todayStudySessions++;
+
     appState.timerAccumulatedTime = 0; // Zera o tempo acumulado
     appState.isTimerRunning = false;
     clearInterval(appState.timerInterval);
@@ -270,7 +291,7 @@ function renderTodayTasks() {
 
     // Se não houver dados para o dia, cria um objeto básico para ele
     if (!todayData) {
-        todayData = { date: displayDateString, studyHours: 0, tasks: [], dailyNotes: '' };
+        todayData = { date: displayDateString, studyHours: 0, tasks: [], dailyNotes: '', correctAnswers: 0, wrongAnswers: 0 };
         appState.plannerData.push(todayData);
         appState.plannerData.sort((a, b) => new Date(a.date) - new Date(b.date)); // Mantém ordenado
     }
@@ -307,6 +328,11 @@ function renderTodayTasks() {
                 <label for="task-${task.id}">${task.description}</label>
                 <span class="today-task-status ${getTaskStatusClass(task.type)}">${getTaskStatusText(task.type)}</span>
                 <div class="task-action-buttons">
+                    ${(task.type === 'questions' || task.type === 'simulado') ? `
+                    <button class="action-btn record-performance-btn" data-task-id="${task.id}" title="Registrar Desempenho">
+                        <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.586 2.586a1 1 0 001.414-1.414L11 9.586V6z" clip-rule="evenodd"></path></svg>
+                    </button>
+                    ` : ''}
                     <button class="action-btn toggle-tips-btn" data-task-id="${task.id}" title="Ver Dica/Bizu">
                         <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>
                     </button>
@@ -337,6 +363,7 @@ function renderTodayTasks() {
                 }
                 saveAppState();
                 updateSummary();
+                updatePerformance(); // Atualiza o desempenho também
             });
 
             // Adiciona listeners para botão de dicas
@@ -365,6 +392,14 @@ function renderTodayTasks() {
             listItem.querySelector(`.delete-task-btn`).addEventListener('click', (event) => {
                 deleteTask(task.id, displayDateString);
             });
+
+            // Adiciona listener para o botão de registrar desempenho
+            const recordPerformanceBtn = listItem.querySelector(`.record-performance-btn`);
+            if (recordPerformanceBtn) {
+                recordPerformanceBtn.addEventListener('click', () => {
+                    openEditTaskModal(task.id, displayDateString, true); // Abre o modal em modo de edição, focando em desempenho
+                });
+            }
         });
     } else {
         todayTaskList.innerHTML = '<p class="text-gray-500 text-center">Nenhuma tarefa agendada para este dia.</p>';
@@ -404,11 +439,16 @@ function renderFullPlanner(reset = true) {
                         <label for="full-task-${task.id}">${task.description}</label>
                         <span class="day-task-type ${getTaskTypeClass(task.type)}">${getTaskTypeText(task.type)}</span>
                         <div class="task-action-buttons">
+                            ${(task.type === 'questions' || task.type === 'simulado') ? `
+                            <button class="action-btn record-performance-btn" data-task-id="${task.id}" data-current-date="${dayData.date}" title="Registrar Desempenho">
+                                <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.586 2.586a1 1 0 001.414-1.414L11 9.586V6z" clip-rule="evenodd"></path></svg>
+                            </button>
+                            ` : ''}
                             <button class="action-btn move-task-btn" data-task-id="${task.id}" data-current-date="${dayData.date}" title="Mover Tarefa">
                                 <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M8 5a1 1 0 100 2h5.586l-1.293 1.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L13.586 5H8zM17 14a1 1 0 100-2h-5.586l1.293-1.293a1 1 0 00-1.414-1.414l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L13.586 14H17z"></path></svg>
                             </button>
                             <button class="action-btn move-to-today-btn" data-task-id="${task.id}" data-current-date="${dayData.date}" title="Trazer para Hoje">
-                                <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path></svg>
+                                <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 002-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path></svg>
                             </button>
                             <button class="action-btn edit-task-btn" data-task-id="${task.id}" data-current-date="${dayData.date}" title="Editar Tarefa">
                                 <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M13.586 3.586a2 2 0 112.828 2.828l-7.793 7.793a1 1 0 01-.328.288l-3 1a1 1 0 01-1.244-1.244l1-3a1 1 0 01.288-.328l7.793-7.793zM10 12l-1 1 3 1 1-3-3-1z"></path></svg>
@@ -436,6 +476,7 @@ function renderFullPlanner(reset = true) {
                     saveAppState();
                     renderTodayTasks(); // Atualiza também as tarefas do dia atual
                     updateSummary();
+                    updatePerformance(); // Atualiza o desempenho também
                     // Atualiza a classe do item no planner completo
                     const fullTaskItem = event.target.closest('.day-task-item');
                     if (task.completed) {
@@ -480,6 +521,14 @@ function renderFullPlanner(reset = true) {
             const taskId = event.currentTarget.dataset.taskId;
             const currentDate = event.currentTarget.dataset.currentDate;
             deleteTask(taskId, currentDate);
+        });
+    });
+
+    fullPlannerDiv.querySelectorAll('.record-performance-btn').forEach(button => {
+        button.addEventListener('click', (event) => {
+            const taskId = event.currentTarget.dataset.taskId;
+            const currentDate = event.currentTarget.dataset.currentDate;
+            openEditTaskModal(taskId, currentDate, true); // Abre o modal em modo de edição, focando em desempenho
         });
     });
 
@@ -550,6 +599,10 @@ function calculateAllMetrics() {
     let totalCompletedTasks = 0;
     let totalStudyHoursAccumulated = 0;
     let daysWithStudyHours = 0;
+    let totalCorrectAnswersGlobal = 0;
+    let totalWrongAnswersGlobal = 0;
+    let totalQuestionsAnswered = 0;
+    let bestAccuracyRate = 0;
 
     appState.plannerData.forEach(day => {
         totalTasks += day.tasks.length;
@@ -557,18 +610,30 @@ function calculateAllMetrics() {
             if (task.completed) {
                 totalCompletedTasks++;
             }
+            // Métricas de acerto/erro
+            if (task.correctAnswers !== undefined) totalCorrectAnswersGlobal += task.correctAnswers;
+            if (task.wrongAnswers !== undefined) totalWrongAnswersGlobal += task.wrongAnswers;
+            totalQuestionsAnswered += (task.correctAnswers || 0) + (task.wrongAnswers || 0);
         });
         if (typeof day.studyHours === 'number' && day.studyHours > 0) {
             totalStudyHoursAccumulated += day.studyHours;
             daysWithStudyHours++;
+        }
+        // Calcula a taxa de acerto diária para encontrar a melhor
+        const dailyTotalQuestions = (day.tasks.reduce((sum, task) => sum + (task.correctAnswers || 0) + (task.wrongAnswers || 0), 0));
+        const dailyCorrectAnswers = (day.tasks.reduce((sum, task) => sum + (task.correctAnswers || 0), 0));
+        if (dailyTotalQuestions > 0) {
+            const dailyAccuracy = (dailyCorrectAnswers / dailyTotalQuestions) * 100;
+            if (dailyAccuracy > bestAccuracyRate) {
+                bestAccuracyRate = dailyAccuracy;
+            }
         }
     });
 
     const averageDailyStudyHours = daysWithStudyHours > 0 ? (totalStudyHoursAccumulated / daysWithStudyHours) : 0;
     const overallCompletionRate = totalTasks > 0 ? ((totalCompletedTasks / totalTasks) * 100).toFixed(1) : 0;
 
-
-    return { totalTasks, totalCompletedTasks, totalStudyHoursAccumulated, averageDailyStudyHours, overallCompletionRate };
+    return { totalTasks, totalCompletedTasks, totalStudyHoursAccumulated, averageDailyStudyHours, overallCompletionRate, totalCorrectAnswersGlobal, totalWrongAnswersGlobal, totalQuestionsAnswered, bestAccuracyRate };
 }
 
 // Função para atualizar o resumo
@@ -589,6 +654,7 @@ function updateSummary() {
 
     document.getElementById('todayStudyHours').textContent = `${todayStudyHours.toFixed(1)}h`;
     document.getElementById('todayCompletedTasks').textContent = `${todayCompletedTasks}/${totalTodayTasks}`;
+    document.getElementById('todayStudySessions').textContent = `${appState.todayStudySessions}`;
 
     // Calcula horas estudadas na semana (últimos 7 dias, incluindo o dia exibido)
     let weeklyHours = 0;
@@ -632,6 +698,174 @@ function updateSummary() {
         summaryGrid.appendChild(totalTasksCreatedCard);
     }
 }
+
+// Função para atualizar a aba de desempenho
+function updatePerformance() {
+    const displayDate = new Date(appState.currentDisplayDate + 'T00:00:00');
+    const displayDateString = displayDate.toISOString().split('T')[0];
+    const todayData = appState.plannerData.find(day => day.date === displayDateString);
+
+    let todayCorrectAnswers = 0;
+    let todayWrongAnswers = 0;
+
+    if (todayData) {
+        todayData.tasks.forEach(task => {
+            todayCorrectAnswers += (task.correctAnswers || 0);
+            todayWrongAnswers += (task.wrongAnswers || 0);
+        });
+    }
+
+    const todayTotalQuestions = todayCorrectAnswers + todayWrongAnswers;
+    const todayAccuracyRate = todayTotalQuestions > 0 ? ((todayCorrectAnswers / todayTotalQuestions) * 100).toFixed(1) : 0;
+
+    document.getElementById('todayCorrectAnswers').textContent = `${todayCorrectAnswers}`;
+    document.getElementById('todayWrongAnswers').textContent = `${todayWrongAnswers}`;
+    document.getElementById('todayAccuracyRate').textContent = `${todayAccuracyRate}%`;
+
+    // Métricas semanais de acerto/erro
+    let weeklyCorrect = 0;
+    let weeklyWrong = 0;
+    let weeklyTotalQuestions = 0;
+
+    for (let i = 0; i < 7; i++) {
+        const date = new Date(displayDate);
+        date.setDate(displayDate.getDate() - i);
+        const dateString = date.toISOString().split('T')[0];
+        const dayData = appState.plannerData.find(day => day.date === dateString);
+        if (dayData) {
+            dayData.tasks.forEach(task => {
+                weeklyCorrect += (task.correctAnswers || 0);
+                weeklyWrong += (task.wrongAnswers || 0);
+            });
+        }
+    }
+    weeklyTotalQuestions = weeklyCorrect + weeklyWrong;
+    document.getElementById('weeklyAvgCorrect').textContent = weeklyTotalQuestions > 0 ? (weeklyCorrect / 7).toFixed(1) : 0;
+    document.getElementById('weeklyAvgWrong').textContent = weeklyTotalQuestions > 0 ? (weeklyWrong / 7).toFixed(1) : 0;
+
+    // Métricas globais
+    const { totalQuestionsAnswered, bestAccuracyRate } = calculateAllMetrics();
+    document.getElementById('totalQuestionsAnswered').textContent = `${totalQuestionsAnswered}`;
+    document.getElementById('bestAccuracyDay').textContent = `${bestAccuracyRate.toFixed(1)}%`;
+
+    renderAccuracyChart();
+}
+
+// Função para renderizar o gráfico de evolução da taxa de acerto
+function renderAccuracyChart() {
+    const ctx = document.getElementById('accuracyChart').getContext('2d');
+
+    // Coleta dados dos últimos 30 dias
+    const labels = [];
+    const accuracyData = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    for (let i = 29; i >= 0; i--) {
+        const date = new Date(today);
+        date.setDate(today.getDate() - i);
+        const dateString = date.toISOString().split('T')[0];
+        labels.push(date.toLocaleDateString('pt-BR', { day: 'numeric', month: 'numeric' }));
+
+        const dayData = appState.plannerData.find(day => day.date === dateString);
+        if (dayData) {
+            let dailyCorrect = 0;
+            let dailyWrong = 0;
+            dayData.tasks.forEach(task => {
+                dailyCorrect += (task.correctAnswers || 0);
+                dailyWrong += (task.wrongAnswers || 0);
+            });
+            const dailyTotal = dailyCorrect + dailyWrong;
+            accuracyData.push(dailyTotal > 0 ? ((dailyCorrect / dailyTotal) * 100) : 0);
+        } else {
+            accuracyData.push(0); // Nenhum dado para o dia
+        }
+    }
+
+    if (accuracyChartInstance) {
+        accuracyChartInstance.destroy(); // Destrói a instância anterior do gráfico
+    }
+
+    accuracyChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Taxa de Acerto Diária (%)',
+                data: accuracyData,
+                borderColor: '#4299e1', // Cor da linha (azul)
+                backgroundColor: 'rgba(66, 153, 225, 0.2)', // Fundo abaixo da linha
+                fill: true,
+                tension: 0.3, // Suaviza a linha
+                pointBackgroundColor: '#2c5282',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#2c5282',
+                pointHoverBorderColor: '#fff',
+                pointRadius: 4,
+                pointHoverRadius: 6,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        font: {
+                            family: 'Inter',
+                            size: 14
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.dataset.label}: ${context.raw.toFixed(1)}%`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Data',
+                        font: {
+                            family: 'Inter',
+                            size: 14
+                        }
+                    },
+                    grid: {
+                        display: false
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Taxa de Acerto (%)',
+                        font: {
+                            family: 'Inter',
+                            size: 14
+                        }
+                    },
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: {
+                        callback: function(value) {
+                            return value + '%';
+                        }
+                    },
+                    grid: {
+                        color: '#e2e8f0'
+                    }
+                }
+            }
+        }
+    });
+}
+
 
 // Função para exibir uma citação motivacional aleatória
 function displayMotivationalQuote() {
@@ -687,7 +921,7 @@ function moveTask(taskId, fromDate, toDate) {
     let toDay;
     if (toDayIndex === -1) {
         // Se o dia de destino não existe, cria-o
-        toDay = { date: toDate, studyHours: 0, tasks: [], dailyNotes: '' };
+        toDay = { date: toDate, studyHours: 0, tasks: [], dailyNotes: '', correctAnswers: 0, wrongAnswers: 0 };
         appState.plannerData.push(toDay);
         appState.plannerData.sort((a, b) => new Date(a.date) - new Date(b.date)); // Mantém ordenado
     } else {
@@ -771,6 +1005,9 @@ function openAddTaskModal() {
     const newTaskType = document.getElementById('newTaskType');
     const newTaskTips = document.getElementById('newTaskTips');
     const newTaskNotes = document.getElementById('newTaskNotes');
+    const accuracyInputs = document.getElementById('accuracyInputs');
+    const newCorrectAnswers = document.getElementById('newCorrectAnswers');
+    const newWrongAnswers = document.getElementById('newWrongAnswers');
     const confirmAddTaskBtn = document.getElementById('confirmAddTaskBtn');
 
     // Reseta os campos e configura para adicionar
@@ -783,6 +1020,18 @@ function openAddTaskModal() {
     newTaskType.value = 'study';
     newTaskTips.value = '';
     newTaskNotes.value = '';
+    newCorrectAnswers.value = 0;
+    newWrongAnswers.value = 0;
+    accuracyInputs.classList.add('hidden'); // Oculta os campos de acerto/erro por padrão
+
+    // Listener para mostrar/ocultar campos de acerto/erro
+    newTaskType.onchange = () => {
+        if (newTaskType.value === 'questions' || newTaskType.value === 'simulado') {
+            accuracyInputs.classList.remove('hidden');
+        } else {
+            accuracyInputs.classList.add('hidden');
+        }
+    };
 
     addTaskModal.classList.add('show');
 
@@ -791,6 +1040,8 @@ function openAddTaskModal() {
         const type = newTaskType.value;
         const tips = newTaskTips.value.trim();
         const notes = newTaskNotes.value.trim();
+        const correctAnswers = parseInt(newCorrectAnswers.value) || 0;
+        const wrongAnswers = parseInt(newWrongAnswers.value) || 0;
 
         if (description === '') {
             showConfirmationModal('Erro', 'A descrição da tarefa não pode ser vazia.', 'Ok', 'modal-btn red', () => {});
@@ -805,7 +1056,9 @@ function openAddTaskModal() {
                 completed: false,
                 type: type,
                 notes: notes,
-                tips: tips
+                tips: tips,
+                correctAnswers: correctAnswers,
+                wrongAnswers: wrongAnswers
             });
             saveAppState();
             renderPlanner();
@@ -822,13 +1075,16 @@ function openAddTaskModal() {
 }
 
 // Função para abrir o modal de editar tarefa
-function openEditTaskModal(taskId, currentDate) {
+function openEditTaskModal(taskId, currentDate, focusPerformance = false) {
     const addTaskModal = document.getElementById('addTaskModal');
     const addTaskModalTitle = document.getElementById('addTaskModalTitle');
     const newTaskDescription = document.getElementById('newTaskDescription');
     const newTaskType = document.getElementById('newTaskType');
     const newTaskTips = document.getElementById('newTaskTips');
     const newTaskNotes = document.getElementById('newTaskNotes');
+    const accuracyInputs = document.getElementById('accuracyInputs');
+    const newCorrectAnswers = document.getElementById('newCorrectAnswers');
+    const newWrongAnswers = document.getElementById('newWrongAnswers');
     const confirmAddTaskBtn = document.getElementById('confirmAddTaskBtn');
 
     // Configura para editar
@@ -849,6 +1105,24 @@ function openEditTaskModal(taskId, currentDate) {
     newTaskType.value = task.type;
     newTaskTips.value = task.tips || '';
     newTaskNotes.value = task.notes || '';
+    newCorrectAnswers.value = task.correctAnswers || 0;
+    newWrongAnswers.value = task.wrongAnswers || 0;
+
+    // Mostra/oculta campos de acerto/erro com base no tipo da tarefa e se está focando em performance
+    if (task.type === 'questions' || task.type === 'simulado' || focusPerformance) {
+        accuracyInputs.classList.remove('hidden');
+    } else {
+        accuracyInputs.classList.add('hidden');
+    }
+
+    // Listener para mostrar/ocultar campos de acerto/erro (também para edição)
+    newTaskType.onchange = () => {
+        if (newTaskType.value === 'questions' || newTaskType.value === 'simulado') {
+            accuracyInputs.classList.remove('hidden');
+        } else {
+            accuracyInputs.classList.add('hidden');
+        }
+    };
 
     addTaskModal.classList.add('show');
 
@@ -857,6 +1131,8 @@ function openEditTaskModal(taskId, currentDate) {
         task.type = newTaskType.value;
         task.tips = newTaskTips.value.trim();
         task.notes = newTaskNotes.value.trim();
+        task.correctAnswers = parseInt(newCorrectAnswers.value) || 0;
+        task.wrongAnswers = parseInt(newWrongAnswers.value) || 0;
 
         if (task.description === '') {
             showConfirmationModal('Erro', 'A descrição da tarefa não pode ser vazia.', 'Ok', 'modal-btn red', () => {});
@@ -975,6 +1251,8 @@ function switchTab(tabId) {
     } else if (tabId === 'summary') {
         updateSummary();
         displayMotivationalQuote();
+    } else if (tabId === 'performance') {
+        updatePerformance();
     }
 }
 
@@ -1010,6 +1288,11 @@ function handleReplaceAll(importedData) {
         if (day.pomodoroSessionsCompleted !== undefined) {
             delete day.pomodoroSessionsCompleted;
         }
+        // Garante que as propriedades de acerto/erro existam nas tarefas importadas
+        day.tasks.forEach(task => {
+            if (task.correctAnswers === undefined) task.correctAnswers = 0;
+            if (task.wrongAnswers === undefined) task.wrongAnswers = 0;
+        });
     });
     saveAppState();
     renderPlanner();
@@ -1043,6 +1326,11 @@ function handleMergeUpdate(importedData) {
                     // Remove pomodoroSessionsCompleted se existir no dado importado
                     ...(importedDay.pomodoroSessionsCompleted !== undefined && { pomodoroSessionsCompleted: undefined })
                 };
+                // Garante que as propriedades de acerto/erro existam nas tarefas importadas e mescladas
+                newPlannerData[existingDayIndex].tasks.forEach(task => {
+                    if (task.correctAnswers === undefined) task.correctAnswers = 0;
+                    if (task.wrongAnswers === undefined) task.wrongAnswers = 0;
+                });
             } else {
                 // Adiciona o novo dia
                 newPlannerData.push({
@@ -1050,6 +1338,11 @@ function handleMergeUpdate(importedData) {
                     dailyNotes: importedDay.dailyNotes || '',
                     // Remove pomodoroSessionsCompleted se existir no dado importado
                     ...(importedDay.pomodoroSessionsCompleted !== undefined && { pomodoroSessionsCompleted: undefined })
+                });
+                // Garante que as propriedades de acerto/erro existam nas tarefas do novo dia
+                newPlannerData[newPlannerData.length - 1].tasks.forEach(task => {
+                    if (task.correctAnswers === undefined) task.correctAnswers = 0;
+                    if (task.wrongAnswers === undefined) task.wrongAnswers = 0;
                 });
             }
         });
@@ -1060,7 +1353,7 @@ function handleMergeUpdate(importedData) {
         appState.plannerData = newPlannerData;
         saveAppState();
         renderPlanner();
-        showConfirmationModal('Importado!', 'Seu planner foi mesclado e atualizado com sucesso.', 'Ok', 'confirm-btn green', () => {});
+        showConfirmationModal('Sucesso!', 'Seu planner foi mesclado e atualizado com sucesso.', 'Ok', 'confirm-btn green', () => {});
     };
 
     if (daysToOverwrite.length > 0) {
@@ -1077,31 +1370,6 @@ function handleMergeUpdate(importedData) {
     } else {
         performMerge(); // Se não houver sobrescrita, mescla diretamente
     }
-}
-
-// Função para abrir o modal de opções de importação
-function openImportOptionsModal(importedData) {
-    const importOptionsModal = document.getElementById('importOptionsModal');
-    const importReplaceAllBtn = document.getElementById('importReplaceAllBtn');
-    const importMergeBtn = document.getElementById('importMergeBtn');
-    const cancelImportOptionsBtn = document.getElementById('cancelImportOptionsBtn');
-
-    importReplaceAllBtn.onclick = () => {
-        handleReplaceAll(importedData);
-        importOptionsModal.classList.remove('show');
-    };
-
-    importMergeBtn.onclick = () => {
-        handleMergeUpdate(importedData);
-        importOptionsModal.classList.remove('show');
-    };
-
-    cancelImportOptionsBtn.onclick = () => {
-        importOptionsModal.classList.remove('show');
-        showConfirmationModal('Importação Cancelada', 'Nenhum dado foi importado.', 'Ok', 'modal-btn blue', () => {});
-    };
-
-    importOptionsModal.classList.add('show');
 }
 
 // Função para copiar o planner para a área de transferência
@@ -1221,6 +1489,8 @@ async function openGenerateTasksModal() {
                     - "studyHours": número (sempre 0 inicialmente)
                     - "tasks": array de objetos de tarefas
                     - "dailyNotes": string (sempre vazia inicialmente)
+                    - "correctAnswers": número (sempre 0 inicialmente)
+                    - "wrongAnswers": número (sempre 0 inicialmente)
 
                     Cada objeto de tarefa dentro do array "tasks" DEVE ter as seguintes propriedades:
                     - "id": string única (ex: "t" + timestamp + random_number). VOCÊ DEVE GERAR ESTE ID.
@@ -1229,6 +1499,8 @@ async function openGenerateTasksModal() {
                     - "type": string (UM DOS SEGUINTES VALORES: "study", "questions", "discursive", "simulado", "revision", "rest")
                     - "notes": string (sempre vazia inicialmente)
                     - "tips": string (uma dica ou bizú relevante para concursos públicos)
+                    - "correctAnswers": número (sempre 0 inicialmente, para tarefas de questões/simulados)
+                    - "wrongAnswers": número (sempre 0 inicialmente, para tarefas de questões/simulados)
 
                     As tarefas devem começar a partir de hoje (${today}).
                     `
@@ -1297,9 +1569,13 @@ async function openGenerateTasksModal() {
                         task.notes = task.notes || '';
                         task.tips = task.tips || '';
                         task.completed = !!task.completed;
+                        task.correctAnswers = task.correctAnswers || 0;
+                        task.wrongAnswers = task.wrongAnswers || 0;
                     });
                     day.dailyNotes = day.dailyNotes || '';
                     day.studyHours = day.studyHours || 0;
+                    day.correctAnswers = day.correctAnswers || 0; // Garante que exista no dia
+                    day.wrongAnswers = day.wrongAnswers || 0; // Garante que exista no dia
                     // Garante que pomodoroSessionsCompleted não seja adicionado
                     if (day.pomodoroSessionsCompleted !== undefined) {
                         delete day.pomodoroSessionsCompleted;
@@ -1332,6 +1608,7 @@ function renderPlanner() {
     updateSummary();
     displayMotivationalQuote();
     switchTab(appState.activeTab);
+    updatePerformance(); // Garante que a performance seja atualizada ao renderizar o planner
 }
 
 // Inicializa o planner ao carregar a página
@@ -1344,32 +1621,21 @@ window.onload = async function() {
     const sideMenu = document.getElementById('sideMenu');
     const sideMenuOverlay = document.getElementById('sideMenuOverlay'); // Novo overlay
 
-    // Garante que o botão de fechar esteja oculto no carregamento inicial
-    // E que o botão de abrir esteja visível
-    menuToggleBtn.classList.add('show');
-    closeMenuBtn.classList.remove('show');
-
     // Event listener para o botão de abrir menu
     menuToggleBtn.addEventListener('click', () => {
         sideMenu.classList.add('open');
         sideMenuOverlay.classList.add('show'); // Mostra o overlay
-        menuToggleBtn.classList.remove('show'); // Oculta o botão de abrir
-        closeMenuBtn.classList.add('show'); // Mostra o botão de fechar
     });
 
     // Event listener para o botão de fechar menu e para o overlay
     closeMenuBtn.addEventListener('click', () => {
         sideMenu.classList.remove('open');
         sideMenuOverlay.classList.remove('show'); // Oculta o overlay
-        closeMenuBtn.classList.remove('show'); // Oculta o botão de fechar
-        menuToggleBtn.classList.add('show'); // Mostra o botão de abrir
     });
 
     sideMenuOverlay.addEventListener('click', () => {
         sideMenu.classList.remove('open');
         sideMenuOverlay.classList.remove('show');
-        closeMenuBtn.classList.remove('show');
-        menuToggleBtn.classList.add('show');
     });
 
     // Event listeners para os botões de aba
@@ -1396,12 +1662,11 @@ window.onload = async function() {
                 appState.timerInterval = null;
                 appState.timerStartTime = 0;
                 appState.activeTab = 'today'; // Volta para a aba "Hoje"
+                appState.todayStudySessions = 0; // Reseta a nova métrica
                 renderPlanner();
                 // Garante que os botões do menu estejam no estado correto após o reset
                 sideMenu.classList.remove('open');
                 sideMenuOverlay.classList.remove('show');
-                closeMenuBtn.classList.remove('show');
-                menuToggleBtn.classList.add('show');
             }
         );
     });
@@ -1430,8 +1695,6 @@ window.onload = async function() {
         // Garante que os botões do menu estejam no estado correto após a exportação
         sideMenu.classList.remove('open');
         sideMenuOverlay.classList.remove('show');
-        closeMenuBtn.classList.remove('show');
-        menuToggleBtn.classList.add('show');
     });
 
     // Event listener para o botão de copiar planner
@@ -1439,8 +1702,6 @@ window.onload = async function() {
         copyPlannerToClipboard();
         sideMenu.classList.remove('open'); // Fecha o menu após a ação
         sideMenuOverlay.classList.remove('show');
-        closeMenuBtn.classList.remove('show');
-        menuToggleBtn.classList.add('show');
     });
 
 
@@ -1483,8 +1744,6 @@ window.onload = async function() {
                 // Garante que os botões do menu estejam no estado correto após a importação
                 sideMenu.classList.remove('open');
                 sideMenuOverlay.classList.remove('show');
-                closeMenuBtn.classList.remove('show');
-                menuToggleBtn.classList.add('show');
 
             } catch (error) {
                 console.error("Erro ao importar planner:", error);
@@ -1501,8 +1760,6 @@ window.onload = async function() {
         openPasteJsonModal();
         sideMenu.classList.remove('open'); // Fecha o menu após a ação
         sideMenuOverlay.classList.remove('show');
-        closeMenuBtn.classList.remove('show');
-        menuToggleBtn.classList.add('show');
     });
 
     // Event listener para o botão de gerar tarefas com IA
@@ -1510,8 +1767,6 @@ window.onload = async function() {
         openGenerateTasksModal();
         sideMenu.classList.remove('open'); // Fecha o menu após a ação
         sideMenuOverlay.classList.remove('show');
-        closeMenuBtn.classList.remove('show');
-        menuToggleBtn.classList.add('show');
     });
 
     // Event listener para o botão de marcar todas as tarefas como concluídas
@@ -1519,8 +1774,6 @@ window.onload = async function() {
         markAllTasksCompletedForToday();
         sideMenu.classList.remove('open'); // Fecha o menu após a ação
         sideMenuOverlay.classList.remove('show');
-        closeMenuBtn.classList.remove('show');
-        menuToggleBtn.classList.add('show');
     });
 
     // Event listener para o botão de limpar todas as tarefas
@@ -1528,8 +1781,6 @@ window.onload = async function() {
         clearAllTasksForToday();
         sideMenu.classList.remove('open'); // Fecha o menu após a ação
         sideMenuOverlay.classList.remove('show');
-        closeMenuBtn.classList.remove('show');
-        menuToggleBtn.classList.add('show');
     });
 
 

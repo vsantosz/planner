@@ -8,6 +8,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <!-- Link para o arquivo CSS externo -->
     <link rel="stylesheet" href="style.css">
+    <!-- Chart.js para gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div class="container">
@@ -18,8 +20,8 @@
                 Organize seus estudos, acompanhe seu progresso e mantenha-se motivado!
             </p>
             <!-- Botão para abrir o menu lateral -->
-            <button id="menuToggleBtn" class="menu-toggle-button show" title="Abrir Menu">
-                <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"></path></svg>
+            <button id="menuToggleBtn" class="menu-toggle-button" title="Abrir Menu">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
         </header>
 
@@ -29,7 +31,7 @@
         <!-- Menu Lateral (Side Drawer) -->
         <nav id="sideMenu" class="side-menu">
             <button id="closeMenuBtn" class="close-menu-button" title="Fechar Menu">
-                <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 18L18 6M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
             <div class="menu-section">
                 <h3 class="menu-title">Acesso Rápido</h3>
@@ -78,6 +80,13 @@
                     Limpar Tarefas (Hoje)
                 </button>
             </div>
+            <div class="menu-section">
+                <h3 class="menu-title">Ferramentas</h3>
+                <button class="menu-link gray">
+                    <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M11.49 3.17c-.32-.96-1.66-.96-1.98 0l-.63 1.9a1 1 0 01-.76.76l-1.9.63c-.96.32-.96 1.66 0 1.98l1.9.63a1 1 0 01.76.76l.63 1.9c.32.96 1.66.96 1.98 0l.63-1.9a1 1 0 01.76-.76l1.9-.63c.96-.32.96-1.66 0-1.98l-1.9-.63a1 1 0 01-.76-.76l-.63-1.9zM7.24 14.46c-.2-.61-.84-.61-1.04 0l-.4 1.2a.5.5 0 01-.38.38l-1.2.4c-.61.2-.61.84 0 1.04l1.2.4a.5.5 0 01.38.38l.4 1.2c.2.61.84.61 1.04 0l.4-1.2a.5.5 0 01.38-.38l1.2-.4c.61-.2.61-.84 0-1.04l-1.2-.4a.5.5 0 01-.38-.38l-.4-1.2zM15.76 14.46c-.2-.61-.84-.61-1.04 0l-.4 1.2a.5.5 0 01-.38.38l-1.2.4c-.61.2-.61.84 0 1.04l1.2.4a.5.5 0 01.38.38l.4 1.2c.2.61.84.61 1.04 0l.4-1.2a.5.5 0 01.38-.38l1.2-.4c.61-.2.61-.84 0-1.04l-1.2-.4a.5.5 0 01-.38-.38l-.4-1.2z" clip-rule="evenodd"></path></svg>
+                    Em Breve...
+                </button>
+            </div>
         </nav>
 
         <!-- Conteúdo Principal com Abas -->
@@ -86,6 +95,7 @@
                 <button class="tab-button active" data-tab="today">Tarefas de Hoje</button>
                 <button class="tab-button" data-tab="full-planner">Cronograma Completo</button>
                 <button class="tab-button" data-tab="summary">Seu Progresso</button>
+                <button class="tab-button" data-tab="performance">Desempenho</button>
             </div>
 
             <div id="today" class="tab-content active">
@@ -155,6 +165,10 @@
                             <h3>Tarefas Concluídas Hoje</h3>
                             <p id="todayCompletedTasks">0/0</p>
                         </div>
+                        <div class="summary-card blue">
+                            <h3>Sessões de Estudo Concluídas Hoje</h3>
+                            <p id="todayStudySessions">0</p>
+                        </div>
                         <div class="summary-card green">
                             <h3>Horas Estudadas na Semana</h3>
                             <p id="weeklyStudyHours">0h</p>
@@ -166,6 +180,48 @@
                 <section class="quote-section">
                     <p id="motivationalQuote"></p>
                     <span id="quoteAuthor"></span>
+                </section>
+            </div>
+
+            <!-- Nova Aba de Desempenho -->
+            <div id="performance" class="tab-content hidden">
+                <section class="performance-section">
+                    <h2>Seu Desempenho</h2>
+                    <div class="performance-grid">
+                        <div class="summary-card blue">
+                            <h3>Acertos Hoje</h3>
+                            <p id="todayCorrectAnswers">0</p>
+                        </div>
+                        <div class="summary-card red">
+                            <h3>Erros Hoje</h3>
+                            <p id="todayWrongAnswers">0</p>
+                        </div>
+                        <div class="summary-card purple">
+                            <h3>Taxa de Acerto Hoje</h3>
+                            <p id="todayAccuracyRate">0%</p>
+                        </div>
+                        <div class="summary-card green">
+                            <h3>Média de Acertos na Semana</h3>
+                            <p id="weeklyAvgCorrect">0</p>
+                        </div>
+                        <div class="summary-card orange">
+                            <h3>Média de Erros na Semana</h3>
+                            <p id="weeklyAvgWrong">0</p>
+                        </div>
+                        <div class="summary-card teal">
+                            <h3>Total de Questões Respondidas</h3>
+                            <p id="totalQuestionsAnswered">0</p>
+                        </div>
+                        <div class="summary-card blue">
+                            <h3>Melhor Desempenho (Acerto)</h3>
+                            <p id="bestAccuracyDay">0%</p>
+                        </div>
+                    </div>
+
+                    <div class="chart-container">
+                        <h3 class="chart-title">Evolução da Taxa de Acerto Diária (Últimos 30 Dias)</h3>
+                        <canvas id="accuracyChart"></canvas>
+                    </div>
                 </section>
             </div>
         </div>
@@ -214,6 +270,20 @@
                     <option value="revision">Revisão</option>
                     <option value="rest">Descanso</option>
                 </select>
+            </div>
+            <!-- Campos para acertos/erros -->
+            <div id="accuracyInputs" class="mb-4 text-left hidden">
+                <label class="block text-gray-700 text-sm font-bold mb-2">Desempenho (Opcional):</label>
+                <div class="flex gap-4">
+                    <div class="flex-1">
+                        <label for="newCorrectAnswers" class="block text-gray-600 text-xs mb-1">Acertos:</label>
+                        <input type="number" id="newCorrectAnswers" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" min="0" value="0">
+                    </div>
+                    <div class="flex-1">
+                        <label for="newWrongAnswers" class="block text-gray-600 text-xs mb-1">Erros:</label>
+                        <input type="number" id="newWrongAnswers" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" min="0" value="0">
+                    </div>
+                </div>
             </div>
             <div class="mb-4 text-left">
                 <label for="newTaskTips" class="block text-gray-700 text-sm font-bold mb-2">Dica/Bizú (Opcional):</label>
@@ -303,6 +373,25 @@
         .summary-card.blue p { color: var(--primary-color); }
         .summary-card.orange p { color: #ed8936; } /* Tailwind orange-500 */
         .summary-card.purple p { color: #805ad5; } /* Tailwind purple-600 */
+        .summary-card.teal p { color: #319795; } /* Tailwind teal-500 */
+        .summary-card.red p { color: #e53e3e; } /* Tailwind red-600 */
+
+        /* Estilos para o gráfico */
+        .chart-container {
+            background-color: var(--background-white);
+            border-radius: 1.2rem;
+            padding: 2.2rem;
+            margin-top: 2.5rem;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e2e8f0;
+        }
+        .chart-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
     </style>
 
     <!-- Link para o arquivo JavaScript externo -->

@@ -64,37 +64,34 @@ body {
 
 /* Botão de abrir/fechar menu */
 .menu-toggle-button, .close-menu-button {
-    position: fixed; /* Mantido como fixed para estar sempre visível */
+    position: fixed;
     top: 1.5rem;
     right: 1.5rem;
-    background-color: var(--primary-color);
-    color: white;
+    background-color: transparent; /* Fundo transparente */
+    color: var(--primary-color); /* Cor do ícone principal */
     width: 48px;
     height: 48px;
     border-radius: 9999px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border: none;
+    border: 2px solid var(--primary-color); /* Borda sutil */
     cursor: pointer;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s ease-in-out, opacity 0.3s ease-in-out, visibility 0.3s ease-in-out; /* Transições mais fluidas */
-    z-index: 1001; /* Acima de outros elementos */
-    opacity: 0; /* Oculto por padrão para animação */
-    visibility: hidden; /* Oculto por padrão para animação */
+    transition: all 0.3s ease-in-out;
+    z-index: 1001;
 }
-.menu-toggle-button.show {
-    opacity: 1;
-    visibility: visible;
-}
+
 .menu-toggle-button:hover, .close-menu-button:hover {
-    background-color: #2a4365; /* Tom mais escuro do primário */
+    background-color: var(--primary-color); /* Fundo preenchido no hover */
+    color: white; /* Ícone branco no hover */
     transform: scale(1.05);
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
 }
+
 .menu-toggle-button svg, .close-menu-button svg {
-    width: 24px;
-    height: 24px;
+    width: 28px; /* Ícones maiores */
+    height: 28px;
 }
 
 /* Overlay do Menu Lateral */
@@ -136,23 +133,33 @@ body {
     transform: translateX(0); /* Abre o menu */
 }
 
+/* Oculta o botão de abrir quando o menu está aberto */
+.side-menu.open + .side-menu-overlay + .menu-toggle-button {
+    opacity: 0;
+    visibility: hidden;
+}
+/* Mostra o botão de fechar quando o menu está aberto */
+.side-menu.open .close-menu-button {
+    opacity: 1;
+    visibility: visible;
+}
+
 .close-menu-button {
-    background-color: transparent; /* Transparente para o botão de fechar */
-    color: var(--text-dark); /* Cor do ícone para o botão de fechar */
-    box-shadow: none;
     position: absolute; /* Posicionado absolutamente dentro do side-menu */
     right: 1rem;
     top: 1rem;
     z-index: 1002; /* Acima do side-menu */
     opacity: 0; /* Oculto por padrão */
     visibility: hidden; /* Oculto por padrão */
-}
-.close-menu-button.show {
-    opacity: 1;
-    visibility: visible;
+    background-color: transparent;
+    border: none; /* Remove a borda padrão */
+    color: var(--text-dark); /* Cor do ícone */
+    box-shadow: none; /* Remove a sombra padrão */
 }
 .close-menu-button:hover {
     background-color: #e2e8f0; /* Fundo cinza claro no hover */
+    color: var(--primary-color); /* Cor do ícone no hover */
+    transform: scale(1.1);
 }
 
 
@@ -230,6 +237,10 @@ body {
 .menu-link.teal svg { color: white; }
 .menu-link.teal:hover { background-color: #2c7a7b; }
 
+.menu-link.gray { background-color: #e2e8f0; color: var(--text-light); }
+.menu-link.gray svg { color: #718096; }
+.menu-link.gray:hover { background-color: #cbd5e0; }
+
 
 /* Abas (Tabbed Interface) */
 .tab-container {
@@ -243,6 +254,8 @@ body {
     border-radius: 1rem;
     padding: 0.5rem;
     box-shadow: inset 0 1px 5px rgba(0, 0, 0, 0.05);
+    flex-wrap: wrap; /* Permite que os botões quebrem a linha em telas menores */
+    gap: 0.5rem; /* Espaçamento entre os botões */
 }
 .tab-button {
     flex: 1;
@@ -256,6 +269,7 @@ body {
     cursor: pointer;
     transition: all 0.3s ease;
     text-align: center;
+    min-width: 120px; /* Garante um tamanho mínimo para os botões */
 }
 .tab-button:hover {
     color: var(--primary-color);
@@ -523,22 +537,8 @@ body {
 .type-revision { background-color: #fee2e2; color: #822727; }
 .type-rest { background-color: #e0f2fe; color: #2b6cb0; }
 
-/* Botões de Mover e Trazer para Hoje */
-.task-action-buttons {
-    display: flex;
-    gap: 0.6rem; /* Aumenta o espaçamento */
-    margin-left: auto;
-}
-.task-action-buttons .action-btn {
-    margin-left: 0;
-}
-.task-action-buttons .action-btn svg {
-    width: 19px; /* Ajusta o tamanho do ícone */
-    height: 19px;
-}
-
 /* Resumo do progresso */
-.summary-section {
+.summary-section, .performance-section {
     background-color: #e6f4f1; /* Light teal/green para complementar o secundário */
     border-radius: 1.2rem;
     padding: 2.2rem;
@@ -546,14 +546,14 @@ body {
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
     border: 1px solid #b2dfdb; /* Borda mais suave */
 }
-.summary-section h2 {
+.summary-section h2, .performance-section h2 {
     font-size: 2.1rem;
     font-weight: 700;
     color: var(--primary-color);
     margin-bottom: 1.8rem;
     text-align: center;
 }
-.summary-grid {
+.summary-grid, .performance-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); /* Ajusta o min-width */
     gap: 1.8rem; /* Aumenta o espaçamento */
@@ -584,12 +584,10 @@ body {
 }
 .summary-card.green p { color: var(--success-color); }
 .summary-card.purple p { color: var(--secondary-color); }
-.summary-card.primary p { color: var(--primary-color); } /* Estilo para o novo card de progresso total */
-
-/* Novos estilos para os cards de resumo dinâmicos */
 .summary-card.blue p { color: var(--primary-color); }
 .summary-card.orange p { color: var(--orange-color); }
-.summary-card.purple p { color: var(--purple-color-light); }
+.summary-card.teal p { color: #319795; }
+.summary-card.red p { color: #e53e3e; }
 
 
 /* Citação Motivacional */
@@ -927,6 +925,12 @@ body {
     .tab-button {
         padding: 0.7rem 1rem;
         font-size: 0.9rem;
+        min-width: unset; /* Remove o min-width para mobile */
+        flex-basis: auto; /* Ajusta a base flexível */
+    }
+    .tab-buttons {
+        justify-content: space-around; /* Distribui melhor os botões */
+        gap: 0.2rem;
     }
     .today-section {
         padding: 1.5rem;
@@ -989,7 +993,7 @@ body {
         width: 24px;
         height: 24px;
     }
-    .full-planner-section h2, .summary-section h2 {
+    .full-planner-section h2, .summary-section h2, .performance-section h2 {
         font-size: 1.8rem;
     }
     .day-card {
@@ -1010,10 +1014,10 @@ body {
         font-size: 0.75rem;
         padding: 0.2rem 0.5rem;
     }
-    .summary-section {
+    .summary-section, .performance-section {
         padding: 1.5rem;
     }
-    .summary-grid {
+    .summary-grid, .performance-grid {
         grid-template-columns: 1fr; /* Uma coluna no mobile */
         gap: 1rem;
     }
@@ -1068,7 +1072,7 @@ body {
     .header h1 {
         font-size: 3rem;
     }
-    .summary-grid {
+    .summary-grid, .performance-grid {
         grid-template-columns: repeat(2, 1fr);
     }
 }
@@ -1076,7 +1080,7 @@ body {
     .container {
         padding: 2.5rem;
     }
-    .summary-grid {
+    .summary-grid, .performance-grid {
         grid-template-columns: repeat(3, 1fr);
     }
     .header h1 {
